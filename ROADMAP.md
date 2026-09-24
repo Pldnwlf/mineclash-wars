@@ -2,7 +2,7 @@
 
 Territorial-Strategiespiel mit **Einsatz-Matches** für mineclash.de: Spieler wetten Sparbuch-Coins,
 der Gewinner bekommt den Topf. Basis: [OpenFront](https://github.com/openfrontio/OpenFrontIO) (AGPL-3.0),
-Look & Feel nach FrontWars (nur Stil nachgebaut, kein Code übernommen).
+Look & Feel nach FrontWars (Stil nachgebaut, alter offener FrontWars-Client als Vorlage – siehe Rahmen).
 
 ## Rahmen (entschieden)
 - Spiel um WindSMP-Geld ist von den WindSMP-Admins erlaubt, **solange kein Glücksspiel** enthalten ist.
@@ -15,23 +15,42 @@ Look & Feel nach FrontWars (nur Stil nachgebaut, kein Code übernommen).
   `CREDITS.md` – der geschlossene Live-Client, Logo und Assets bleiben tabu.
 - Eingebunden als **iframe-Tab `/play`** auf mineclash.de mit Vollbild-Knopf, Spiel läuft auf `play.mineclash.de` (#32).
 - Menü wie FrontWars: **zwei Rotations-Karten (Einsatz | Gratis)** mit je einer aktiven Lobby + Custom-Lobby-Liste (#19, #23).
-- Sieg in Einsatz-Matches: nur Menschen zählen, letzter Mensch gewinnt, 80 % + Overtime ab Min. 15, Gleichstand teilt (#9).
-- Rake 5 % aufs Haus-Konto, Gewinner bekommt alles, Auszahlung sofort nach Server-Prüfung (#25).
-- Alle Entscheide vom 2026-09-24 stehen im Abschnitt „Entscheide“ der Issues.
+- Sieg in Einsatz-Matches: nur Menschen zählen, letzter Mensch mit Gebiet gewinnt. 80 %, ab Min. 15 Overtime −1 %/Min.,
+  bei Min. 25 (70 %) Schluss ⇒ Mensch mit dem meisten Land gewinnt, Gleichstand teilt (#9).
+- **Disconnect zählt nicht:** Rejoin jederzeit bis Matchende, auch Tab-Reload (#9, #36). Absturz/Abbruch ⇒ alle Einsätze zurück.
+- Rake 5 % wird **verbrannt** (Geld bleibt auf BestesAuto ⇒ Deckung steigt), Gewinner bekommt alles, Auszahlung sofort
+  nach Server-Prüfung. Rückbuchung bei Teaming nur bis Saldo 0 (#25).
+- Einsatz fix in Coins, $-Anzeige mit live Sparbuch-Kurs, 1× täglich aktualisiert (#19, #22).
+- Beitritt per Klick auf die Lobby-Karte (gelber Glow, nochmal klicken = raus), **kein Ready** (#19, #20).
+- Max. **2 Konten pro IP** je Einsatz-Lobby, geteilte IPs pro Match in der DB protokolliert (#23, #27).
+- Regel-Popup mit „Akzeptieren“ vor dem ersten Einsatz-Match, Tutorial freiwillig (#31, #35).
+- Replays 7/90 Tage, alte Builds werden nicht aufgehoben – abspielbar, soweit der Code-Stand passt (#29).
+- Keine Limits, Selbstsperre oder Altersgrenze (#26, zu).
+- Logo = MineClash-Logo, Schrift Overpass, Musik von NCS (#3, #37).
+- Alle Entscheide (2026-09-24/25) stehen im Abschnitt „Entscheide“ der Issues. Das Konzept-Doc ist in Teilen überholt
+  (Allianzen aus, Stufen 10/100/1000, Top-3-Verteilung) – es gelten die Issues.
+
+## Noch offen
+- Start von Custom-Einsatz-Lobbys: Host-Knopf, Timer oder voll? Mindestspieler? Host geht? (#23)
+- Tap-to-Attack mobil (#18), konkrete Farbpalette (#17), Start-Alarm (#37), Beta-Teilnehmer (#33), endgültiger Name (#7).
 
 ## Kritischer Pfad bis zum ersten Einsatz-Match
 ```
-#4 eigene API ──► #21 Login ──► #22 Wallet ──► #23 Einsatz-Lobbys ──► #25 Auszahlungsregeln
-                                  │
-#6 Hosting ─────────────────────► #24 Gewinner serverseitig (Pflicht vor Geld!)
-                                  │
-                   #29 Replays ──► #28 Reports ──► #30 Admin ──► #31 Regeln ──► #35 Tutorial ──► #33 Beta
+#5 Turnstile-Umbau ──┐
+#4 eigene API ───────┴─► #21 Login ──► #22 Wallet ──► #23 Einsatz-Lobbys ──► #25 Auszahlung
+                                                                            ▲
+#6 Hosting ───┐                                                             │
+#9 Siegregeln ┼─► #24 Gewinner serverseitig (Pflicht vor Geld!) ────────────┤
+#29 Replays ──┘                                                             │
+#36 Reconnect-Test ─────────────────────────────────────────────────────────┘
+
+#29 Replays ──► #28 Reports ──► #30 Admin ──► #31 Regeln ──► #35 Tutorial ──► #33 Beta
 ```
 Parallel dazu: HUD (#12–#18), Menü/Lobby (#19, #20), Branding/Assets (#3, #7).
 
 🔴 Code-Abgleich 2026-09-24 (Details im Abschnitt „Code-Abgleich“ der Issues): Siegschwelle ist 80 %, im FFA gewinnt
 immer genau ein Spieler – auch eine KI (#9, #25); nach einem Disconnect entscheidet der Übriggebliebene den Sieger-Vote
-allein (#24); `/users/@me` + EdDSA-JWT + Gast-JWT fehlen im API-Plan (#4, #21); Turnstile-Ausbau sperrt sonst alle Joins (#5).
+allein – egal, wer das Match wirklich gewonnen hat (#24); `/users/@me` + EdDSA-JWT + Gast-JWT fehlen im API-Plan (#4, #21); Turnstile-Ausbau sperrt sonst alle Joins (#5).
 
 ## Phasen
 | Phase | Inhalt | Issues |
@@ -40,7 +59,7 @@ allein (#24); `/users/@me` + EdDSA-JWT + Gast-JWT fehlen im API-Plan (#4, #21); 
 | 1 Gameplay | ✅ Handel/Züge minimaler Zufall, Regelwerk Einsatz-Matches | #8, #9 |
 | 2 HUD | ✅ Control-Panel, ✅ Baubalken, Infokarte, Event-Log, Rangliste, Radialmenü, Hide UI, Design-Tokens, Mobil | #10–#18 |
 | 3 Menü & Lobby | Hauptmenü FrontWars-Aufbau, Lobby-Ansicht | #19, #20 |
-| 4 Konten & Einsatz | Login, Wallet, Einsatz-Lobbys, verbindlicher Gewinner, Auszahlung, Schutz | #21–#26 |
+| 4 Konten & Einsatz | Login, Wallet, Einsatz-Lobbys, verbindlicher Gewinner, Auszahlung (Schutz #26: entschieden, zu) | #21–#26 |
 | 5 Fairness | Anti-Teaming-Konzept, Reports, Replays, Admin, Tab-Wechsel/Login-Ablauf testen | #27–#30, #36 |
 | 6 Launch | Regeln/AGPL-Link, Einbindung mineclash.de, Lasttest + Beta, Tutorial ergänzen | #31–#33, #35 |
 
