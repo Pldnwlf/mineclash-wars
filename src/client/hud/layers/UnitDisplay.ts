@@ -141,8 +141,11 @@ export class UnitDisplay extends LitElement implements Controller {
     }
 
     return html`
-      <div class="border-t border-white/10 p-0.5 w-full">
-        <div class="grid grid-rows-1 grid-flow-col gap-0.5 w-fit mx-auto">
+      <div class="p-1.5 w-full">
+        <!-- FrontWars layout: separate tiles, 6 per row, last row centred -->
+        <div
+          class="flex flex-wrap justify-center gap-1.5 max-w-[480px] mx-auto"
+        >
           ${this.renderUnitItem(
             cityIcon,
             this._cities,
@@ -279,9 +282,10 @@ export class UnitDisplay extends LitElement implements Controller {
         <div
           class="${this.canBuild(unitType)
             ? ""
-            : "opacity-40"} border border-slate-500 rounded-sm px-0.5 pb-0.5 flex items-center gap-0.5 cursor-pointer
-             ${selected ? "hover:bg-gray-400/10" : "hover:bg-gray-800"}
-             rounded-sm text-white ${selected ? "bg-slate-400/20" : ""}
+            : "*:opacity-40"} relative w-[74px] h-10 rounded-md flex items-center justify-center gap-2 cursor-pointer text-white shadow-md backdrop-blur-sm
+             ${selected
+            ? "bg-slate-500/80 ring-1 ring-white/40"
+            : "bg-gray-800/90 hover:bg-gray-700/90"}
              ${this.tutorialHighlight === unitType ? "tutorial-highlight" : ""}"
           @click=${() => {
             if (selected) {
@@ -312,15 +316,15 @@ export class UnitDisplay extends LitElement implements Controller {
           @mouseleave=${() =>
             this.eventBus?.emit(new ToggleStructureEvent(null))}
         >
-          ${html`<div class="ml-0.5 text-[10px] relative -top-1 text-gray-400">
+          <div class="absolute top-0.5 left-1.5 text-[10px] text-gray-400">
             ${displayHotkey}
-          </div>`}
-          <div class="flex items-center gap-0.5 pt-0.5">
-            <img src=${icon} alt=${structureKey} class="align-middle size-5" />
-            ${number !== null
-              ? html`<span class="text-xs">${renderNumber(number)}</span>`
-              : null}
           </div>
+          <img src=${icon} alt=${structureKey} class="size-5" />
+          ${number !== null
+            ? html`<span class="text-sm text-gray-300 tabular-nums"
+                >${renderNumber(number)}</span
+              >`
+            : null}
         </div>
       </div>
     `;
