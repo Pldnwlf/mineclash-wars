@@ -5,6 +5,12 @@
 OpenFront is licensed under AGPL-3.0.  
 See [Contributors](https://github.com/openfrontio/OpenFrontIO/graphs/contributors) for code contributors.
 
+## Logo
+
+`resources/images/mineclash/` (Logo, mobile logo, favicon) is the **MineClash** logo from [mineclash.de](https://mineclash.de)
+(the "M" mark plus the wordmark in Bai Jamjuree, SIL OFL 1.1). It replaces the proprietary OpenFront logos in
+`proprietary/images/`, which are not distributed.
+
 ## Fonts
 
 ### Overpass
