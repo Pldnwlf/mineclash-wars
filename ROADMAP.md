@@ -15,6 +15,8 @@ Look & Feel nach FrontWars (Stil nachgebaut, alter offener FrontWars-Client als 
   `CREDITS.md` – der geschlossene Live-Client, Logo und Assets bleiben tabu.
 - Eingebunden als **iframe-Tab `/play`** auf mineclash.de mit Vollbild-Knopf, Spiel läuft auf `play.mineclash.de` (#32).
 - Menü wie FrontWars: **zwei Rotations-Karten (Einsatz | Gratis)** mit je einer aktiven Lobby + Custom-Lobby-Liste (#19, #23).
+  Custom-Lobbys: Start per Host-Knopf, kein Minimum, Host stellt alle Optionen wie in FrontWars ein (Bots, Nationen, Startgold,
+  Multiplikator, Einheiten aus, …). Handy-Ansicht im Hinterkopf, jetzt keine Priorität.
 - Sieg in Einsatz-Matches: nur Menschen zählen, letzter Mensch mit Gebiet gewinnt. 80 %, ab Min. 15 Overtime −1 %/Min.,
   bei Min. 25 (70 %) Schluss ⇒ Mensch mit dem meisten Land gewinnt, Gleichstand teilt (#9).
 - **Disconnect zählt nicht:** Rejoin jederzeit bis Matchende, auch Tab-Reload (#9, #36). Absturz/Abbruch ⇒ alle Einsätze zurück.
@@ -31,7 +33,7 @@ Look & Feel nach FrontWars (Stil nachgebaut, alter offener FrontWars-Client als 
   (Allianzen aus, Stufen 10/100/1000, Top-3-Verteilung) – es gelten die Issues.
 
 ## Noch offen
-- Start von Custom-Einsatz-Lobbys: Host-Knopf, Timer oder voll? Mindestspieler? Host geht? (#23)
+- Custom-Einsatz-Lobbys (#23): Host allein mit KI? Teams/HvN mit Einsatz? Spiellänge frei oder fest?
 - Tap-to-Attack mobil (#18), konkrete Farbpalette (#17), Start-Alarm (#37), Beta-Teilnehmer (#33), endgültiger Name (#7).
 
 ## Kritischer Pfad bis zum ersten Einsatz-Match
