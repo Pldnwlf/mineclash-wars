@@ -8,7 +8,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
-import { zInt, zRandom, zRef } from "../snapshot/SnapshotType";
+import { zInt, zNum, zRandom, zRef } from "../snapshot/SnapshotType";
 import { TrainExecution } from "./TrainExecution";
 
 export class TrainStationExecution implements Execution {
@@ -19,6 +19,9 @@ export class TrainStationExecution implements Execution {
   private numCars: number = 5;
   private lastSpawnTick: number = 0;
   private ticksCooldown: number = 10; // Minimum cooldown between two trains
+  // Paced spawning, see shouldSpawnTrain.
+  private spawnProgress: number = 0;
+  private spawnThreshold: number = 1;
   constructor(
     private unit: Unit,
     private spawnTrains?: boolean, // If set, the station will spawn trains
@@ -66,7 +69,12 @@ export class TrainStationExecution implements Execution {
         this.mg.unitCount(UnitType.Train),
       );
     for (let i = 0; i < this.unit!.level(); i++) {
-      if (this.random.chance(spawnRate)) {
+      // Expected value instead of a 1/spawnRate coin flip, threshold jittered
+      // by only ±10 %: same average income, no streaks.
+      this.spawnProgress += 1 / spawnRate;
+      if (this.spawnProgress >= this.spawnThreshold) {
+        this.spawnProgress = 0;
+        this.spawnThreshold = this.random.nextFloat(0.9, 1.1);
         return true;
       }
     }
@@ -124,6 +132,8 @@ export class TrainStationExecution implements Execution {
       numCars: this.numCars,
       lastSpawnTick: this.lastSpawnTick,
       ticksCooldown: this.ticksCooldown,
+      spawnProgress: this.spawnProgress,
+      spawnThreshold: this.spawnThreshold,
     });
   }
 
@@ -137,6 +147,8 @@ export class TrainStationExecution implements Execution {
     this.numCars = s.numCars;
     this.lastSpawnTick = s.lastSpawnTick;
     this.ticksCooldown = s.ticksCooldown;
+    this.spawnProgress = s.spawnProgress;
+    this.spawnThreshold = s.spawnThreshold;
   }
 }
 
@@ -150,12 +162,17 @@ const TrainStationExecStateSchema = z.object({
   numCars: zInt(),
   lastSpawnTick: zInt(),
   ticksCooldown: zInt(),
+  spawnProgress: zNum(),
+  spawnThreshold: zNum(),
 });
 type TrainStationExecState = z.infer<typeof TrainStationExecStateSchema>;
 
 export const TrainStationExecutionSnapshot = execSnapshotType({
   name: "TrainStation",
-  version: 1,
+  version: 2,
   schema: TrainStationExecStateSchema,
+  migrations: {
+    1: (d) => ({ ...d, spawnProgress: 0, spawnThreshold: 1 }),
+  },
   cls: () => TrainStationExecution,
 });

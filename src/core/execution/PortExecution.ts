@@ -7,9 +7,11 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
-import { zInt, zRandom, zRef } from "../snapshot/SnapshotType";
+import { zInt, zNum, zRandom, zRef } from "../snapshot/SnapshotType";
 import { TradeShipExecution } from "./TradeShipExecution";
 import { TrainStationExecution } from "./TrainStationExecution";
+
+const PORT_PACE = 0.72;
 
 export class PortExecution implements Execution {
   private active = true;
@@ -18,6 +20,9 @@ export class PortExecution implements Execution {
   private random: PseudoRandom;
   private checkOffset: number;
   private tradeShipSpawnRejections = 0;
+  // Paced spawning, see shouldSpawnTradeShip.
+  private spawnProgress = 0;
+  private spawnThreshold = PORT_PACE;
 
   constructor(port: Unit) {
     this.port = port;
@@ -82,7 +87,14 @@ export class PortExecution implements Execution {
       const spawnRate = this.mg
         .config()
         .tradeShipSpawnRate(this.tradeShipSpawnRejections, numTradeShips);
-      if (this.random.chance(spawnRate)) {
+      // Instead of a 1/spawnRate coin flip, add the probability and spawn at a
+      // threshold jittered by only ±10 %: same average income, no streaks.
+      // The pity timer makes the chance grow each check, so the threshold is
+      // not 1: 0.72 matches the coin flip's mean wait for saturation 1-2.
+      this.spawnProgress += 1 / spawnRate;
+      if (this.spawnProgress >= this.spawnThreshold) {
+        this.spawnProgress = 0;
+        this.spawnThreshold = PORT_PACE * this.random.nextFloat(0.9, 1.1);
         this.tradeShipSpawnRejections = 0;
         return true;
       }
@@ -159,6 +171,8 @@ export class PortExecution implements Execution {
         ? { random: w.random(this.random), checkOffset: this.checkOffset }
         : null,
       tradeShipSpawnRejections: this.tradeShipSpawnRejections,
+      spawnProgress: this.spawnProgress,
+      spawnThreshold: this.spawnThreshold,
     });
   }
 
@@ -171,6 +185,8 @@ export class PortExecution implements Execution {
       this.checkOffset = s.init.checkOffset;
     }
     this.tradeShipSpawnRejections = s.tradeShipSpawnRejections;
+    this.spawnProgress = s.spawnProgress;
+    this.spawnThreshold = s.spawnThreshold;
   }
 }
 
@@ -180,12 +196,17 @@ const PortStateSchema = z.object({
   // Set by init.
   init: z.object({ random: zRandom(), checkOffset: zInt() }).nullable(),
   tradeShipSpawnRejections: zInt(),
+  spawnProgress: zNum(),
+  spawnThreshold: zNum(),
 });
 type PortState = z.infer<typeof PortStateSchema>;
 
 export const PortExecutionSnapshot = execSnapshotType({
   name: "Port",
-  version: 1,
+  version: 2,
   schema: PortStateSchema,
+  migrations: {
+    1: (d) => ({ ...d, spawnProgress: 0, spawnThreshold: PORT_PACE }),
+  },
   cls: () => PortExecution,
 });
