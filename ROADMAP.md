@@ -11,8 +11,13 @@ Look & Feel nach FrontWars (nur Stil nachgebaut, kein Code übernommen).
 - Einsatz in **Sparbuch-Coins** (mineclash), Login mit mineclash-Konto (Mojang-UUID).
 - **Allianzen erlaubt**, grobes Teaming über Runden verboten, Spieler können melden (#27).
 - Eigener Container, öffentliches Repo (AGPL).
-- Vorschlag, noch offen: der alte offene FrontWars-Client (GPL v3, Stand 2025-08, `../frontwars`) ist mit AGPL kombinierbar und
-  könnte als Vorlage für #12/#13 dienen – der geschlossene Live-Client, Logo und Assets bleiben tabu.
+- Der alte offene FrontWars-Client (GPL v3, Stand 2025-08, `../frontwars`) darf als Vorlage dienen (#12/#13), mit Hinweis in
+  `CREDITS.md` – der geschlossene Live-Client, Logo und Assets bleiben tabu.
+- Eingebunden als **iframe-Tab `/play`** auf mineclash.de mit Vollbild-Knopf, Spiel läuft auf `play.mineclash.de` (#32).
+- Menü wie FrontWars: **zwei Rotations-Karten (Einsatz | Gratis)** mit je einer aktiven Lobby + Custom-Lobby-Liste (#19, #23).
+- Sieg in Einsatz-Matches: nur Menschen zählen, letzter Mensch gewinnt, 80 % + Overtime ab Min. 15, Gleichstand teilt (#9).
+- Rake 5 % aufs Haus-Konto, Gewinner bekommt alles, Auszahlung sofort nach Server-Prüfung (#25).
+- Alle Entscheide vom 2026-09-24 stehen im Abschnitt „Entscheide“ der Issues.
 
 ## Kritischer Pfad bis zum ersten Einsatz-Match
 ```
