@@ -38,10 +38,11 @@ export class SendResourceModal extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    const initPct =
-      this.uiState && typeof this.uiState.attackRatio === "number"
-        ? Math.round(this.uiState.attackRatio * 100)
-        : 100;
+    const ratio =
+      this.mode === "gold"
+        ? this.uiState?.donateGoldRatio
+        : this.uiState?.donateTroopRatio;
+    const initPct = typeof ratio === "number" ? Math.round(ratio * 100) : 100;
     this.selectedPercent = this.sanitizePercent(initPct);
 
     const basis = this.getPercentBasis();

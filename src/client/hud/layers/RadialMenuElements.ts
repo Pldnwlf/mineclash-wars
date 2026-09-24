@@ -753,7 +753,7 @@ export const centerButtonElement: CenterButtonElement = {
     } else {
       if (isFriendlyTarget(params) && !isDisconnectedTarget(params)) {
         const selectedPlayer = params.selected as PlayerView;
-        const ratio = params.uiState?.attackRatio ?? 1;
+        const ratio = params.uiState?.donateTroopRatio ?? 0.1;
         const troopsToDonate = Math.floor(ratio * params.myPlayer.troops());
         if (troopsToDonate > 0) {
           params.playerActionHandler.handleDonateTroops(

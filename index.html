@@ -437,11 +437,19 @@
         <tutorial-panel
           class="hidden w-full order-3 sm:order-none"
         ></tutorial-panel>
+        <!-- lg+: the box goes transparent and its two children become their
+             own panels: control-panel bottom-left (FrontWars layout), the
+             build bar stays centred. No backdrop-filter on the box at lg+,
+             or the fixed control-panel would be positioned inside it. -->
         <div
-          class="pointer-events-auto bg-gray-800/92 backdrop-blur-sm sm:rounded-tr-lg lg:rounded-t-lg min-[1200px]:rounded-lg shadow-lg order-3 sm:order-none"
+          class="pointer-events-auto bg-gray-800/92 backdrop-blur-sm sm:rounded-tr-lg shadow-lg order-3 sm:order-none lg:bg-transparent lg:backdrop-filter-none lg:shadow-none"
         >
-          <control-panel class="w-full"></control-panel>
-          <unit-display class="hidden lg:block w-full"></unit-display>
+          <control-panel
+            class="w-full lg:fixed lg:left-4 lg:bottom-4 lg:w-[300px]"
+          ></control-panel>
+          <unit-display
+            class="hidden lg:block w-full lg:bg-gray-800/92 lg:backdrop-blur-sm lg:rounded-t-lg min-[1200px]:rounded-lg lg:shadow-lg"
+          ></unit-display>
         </div>
       </div>
 

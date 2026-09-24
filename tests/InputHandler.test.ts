@@ -70,6 +70,8 @@ describe("InputHandler AutoUpgrade", () => {
       mockGameView,
       {
         attackRatio: 20,
+        donateTroopRatio: 0.1,
+        donateGoldRatio: 0.1,
         ghostStructure: null,
         rocketDirectionUp: true,
         upgradeMultiplier: 1,
@@ -673,6 +675,8 @@ describe("InputHandler AutoUpgrade", () => {
     beforeEach(() => {
       uiState = {
         attackRatio: 20,
+        donateTroopRatio: 0.1,
+        donateGoldRatio: 0.1,
         ghostStructure: null,
         rocketDirectionUp: true,
       } as UIState;
@@ -727,6 +731,8 @@ describe("InputHandler AutoUpgrade", () => {
       inputHandler.destroy();
       const uiState: UIState = {
         attackRatio: 20,
+        donateTroopRatio: 0.1,
+        donateGoldRatio: 0.1,
         ghostStructure: null,
         rocketDirectionUp: true,
       } as UIState;
@@ -781,6 +787,8 @@ describe("InputHandler AutoUpgrade", () => {
       });
       const uiState: UIState = {
         attackRatio: 20,
+        donateTroopRatio: 0.1,
+        donateGoldRatio: 0.1,
         ghostStructure: null,
         rocketDirectionUp: true,
       } as UIState;
@@ -833,6 +841,8 @@ describe("InputHandler AutoUpgrade", () => {
       inputHandler.destroy();
       const uiState: UIState = {
         attackRatio: 20,
+        donateTroopRatio: 0.1,
+        donateGoldRatio: 0.1,
         ghostStructure: null,
         rocketDirectionUp: true,
       } as UIState;
@@ -853,6 +863,8 @@ describe("InputHandler AutoUpgrade", () => {
       inputHandler.destroy();
       const uiState: UIState = {
         attackRatio: 20,
+        donateTroopRatio: 0.1,
+        donateGoldRatio: 0.1,
         ghostStructure: null,
         rocketDirectionUp: true,
       } as UIState;
@@ -879,6 +891,8 @@ describe("InputHandler AutoUpgrade", () => {
       inputHandler.destroy();
       const uiState: UIState = {
         attackRatio: 20,
+        donateTroopRatio: 0.1,
+        donateGoldRatio: 0.1,
         ghostStructure: null,
         rocketDirectionUp: true,
       } as UIState;
@@ -902,6 +916,8 @@ describe("InputHandler AutoUpgrade", () => {
       inputHandler.destroy();
       const uiState: UIState = {
         attackRatio: 20,
+        donateTroopRatio: 0.1,
+        donateGoldRatio: 0.1,
         ghostStructure: null,
         rocketDirectionUp: true,
       } as UIState;
@@ -928,6 +944,8 @@ describe("InputHandler AutoUpgrade", () => {
       inputHandler.destroy();
       uiState = {
         attackRatio: 20,
+        donateTroopRatio: 0.1,
+        donateGoldRatio: 0.1,
         ghostStructure: null,
         rocketDirectionUp: true,
       } as UIState;
@@ -1066,6 +1084,8 @@ describe("Warship box selection (Shift+drag)", () => {
     eventBus = new EventBus();
     uiState = {
       attackRatio: 20,
+      donateTroopRatio: 0.1,
+      donateGoldRatio: 0.1,
       ghostStructure: null,
       rocketDirectionUp: true,
     } as UIState;
@@ -1251,6 +1271,8 @@ describe("InputHandler right-click cancels unit selection (#4692)", () => {
       } as unknown as GameView,
       {
         attackRatio: 20,
+        donateTroopRatio: 0.1,
+        donateGoldRatio: 0.1,
         ghostStructure: null,
         rocketDirectionUp: true,
         upgradeMultiplier: 1,
@@ -1366,6 +1388,8 @@ describe("InputHandler teardown (OPE-411)", () => {
       } as unknown as GameView,
       {
         attackRatio: 20,
+        donateTroopRatio: 0.1,
+        donateGoldRatio: 0.1,
         ghostStructure: null,
         rocketDirectionUp: true,
         upgradeMultiplier: 1,

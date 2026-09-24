@@ -60,6 +60,8 @@ export function createRenderer(
 
   const uiState: UIState = {
     attackRatio: 20,
+    donateTroopRatio: 0.1,
+    donateGoldRatio: 0.1,
     ghostStructure: null,
     rocketDirectionUp: true,
     upgradeMultiplier: 1,
