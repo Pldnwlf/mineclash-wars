@@ -36,7 +36,7 @@ allein (#24); `/users/@me` + EdDSA-JWT + Gast-JWT fehlen im API-Plan (#4, #21); 
 ## Phasen
 | Phase | Inhalt | Issues |
 |---|---|---|
-| 0 Fundament | Repo, Upstream-Sync, proprietäre Assets, eigene API, Client entschlacken, Hosting, Branding | #1–#7 |
+| 0 Fundament | Repo, Upstream-Sync, proprietäre Assets, eigene API, Client entschlacken, Hosting, Branding, Musik (NCS) | #1–#7, #37 |
 | 1 Gameplay | ✅ Handel/Züge minimaler Zufall, Regelwerk Einsatz-Matches | #8, #9 |
 | 2 HUD | ✅ Control-Panel, ✅ Baubalken, Infokarte, Event-Log, Rangliste, Radialmenü, Hide UI, Design-Tokens, Mobil | #10–#18 |
 | 3 Menü & Lobby | Hauptmenü FrontWars-Aufbau, Lobby-Ansicht | #19, #20 |
