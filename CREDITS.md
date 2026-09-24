@@ -5,6 +5,16 @@
 OpenFront is licensed under AGPL-3.0.  
 See [Contributors](https://github.com/openfrontio/OpenFrontIO/graphs/contributors) for code contributors.
 
+## Fonts
+
+### Overpass
+
+Display font `resources/fonts/overpass-bold.woff` (also `overpass.woff`).  
+Used as the menu/title font following [FrontWars](https://github.com/silverleafsolutions/FrontWars), which
+switched OpenFront to Overpass (FrontWars commit `f1bddc7e`, "use overpass font").  
+Overpass by Delve Withrington / Red Hat, SIL Open Font License 1.1; shipped here under the `/resources` asset license (CC BY-SA 4.0, "OpenFront").  
+Replaces the proprietary `OpenFront.ttf`, which is not distributed.
+
 ## Map Data
 
 ### OpenStreetMap

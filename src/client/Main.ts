@@ -480,9 +480,11 @@ class Client {
     await customElements.whenDefined("mobile-nav-bar");
     await customElements.whenDefined("desktop-nav-bar");
 
+    // Display font: Overpass Bold, as used by FrontWars (see CREDITS.md),
+    // instead of the All-Rights-Reserved proprietary/fonts/OpenFront.ttf.
     const openFrontFont = new FontFace(
-      "OpenFront",
-      `url(${assetUrl("fonts/OpenFront.ttf")})`,
+      "Overpass Display",
+      `url(${assetUrl("fonts/overpass-bold.woff")})`,
     );
     document.fonts.add(openFrontFont);
     openFrontFont.load().catch(() => {});
