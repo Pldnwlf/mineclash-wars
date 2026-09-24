@@ -11,6 +11,8 @@ Look & Feel nach FrontWars (nur Stil nachgebaut, kein Code übernommen).
 - Einsatz in **Sparbuch-Coins** (mineclash), Login mit mineclash-Konto (Mojang-UUID).
 - **Allianzen erlaubt**, grobes Teaming über Runden verboten, Spieler können melden (#27).
 - Eigener Container, öffentliches Repo (AGPL).
+- Vorschlag, noch offen: der alte offene FrontWars-Client (GPL v3, Stand 2025-08, `../frontwars`) ist mit AGPL kombinierbar und
+  könnte als Vorlage für #12/#13 dienen – der geschlossene Live-Client, Logo und Assets bleiben tabu.
 
 ## Kritischer Pfad bis zum ersten Einsatz-Match
 ```
@@ -18,9 +20,13 @@ Look & Feel nach FrontWars (nur Stil nachgebaut, kein Code übernommen).
                                   │
 #6 Hosting ─────────────────────► #24 Gewinner serverseitig (Pflicht vor Geld!)
                                   │
-                   #29 Replays ──► #28 Reports ──► #30 Admin ──► #31 Regeln ──► #33 Beta
+                   #29 Replays ──► #28 Reports ──► #30 Admin ──► #31 Regeln ──► #35 Tutorial ──► #33 Beta
 ```
 Parallel dazu: HUD (#12–#18), Menü/Lobby (#19, #20), Branding/Assets (#3, #7).
+
+🔴 Code-Abgleich 2026-09-24 (Details im Abschnitt „Code-Abgleich“ der Issues): Siegschwelle ist 80 %, im FFA gewinnt
+immer genau ein Spieler – auch eine KI (#9, #25); nach einem Disconnect entscheidet der Übriggebliebene den Sieger-Vote
+allein (#24); `/users/@me` + EdDSA-JWT + Gast-JWT fehlen im API-Plan (#4, #21); Turnstile-Ausbau sperrt sonst alle Joins (#5).
 
 ## Phasen
 | Phase | Inhalt | Issues |
@@ -30,8 +36,8 @@ Parallel dazu: HUD (#12–#18), Menü/Lobby (#19, #20), Branding/Assets (#3, #7)
 | 2 HUD | ✅ Control-Panel, ✅ Baubalken, Infokarte, Event-Log, Rangliste, Radialmenü, Hide UI, Design-Tokens, Mobil | #10–#18 |
 | 3 Menü & Lobby | Hauptmenü FrontWars-Aufbau, Lobby-Ansicht | #19, #20 |
 | 4 Konten & Einsatz | Login, Wallet, Einsatz-Lobbys, verbindlicher Gewinner, Auszahlung, Schutz | #21–#26 |
-| 5 Fairness | Anti-Teaming-Konzept, Reports, Replays, Admin | #27–#30 |
-| 6 Launch | Regeln/AGPL-Link, Einbindung mineclash.de, Lasttest + Beta | #31–#33 |
+| 5 Fairness | Anti-Teaming-Konzept, Reports, Replays, Admin, Tab-Wechsel/Login-Ablauf testen | #27–#30, #36 |
+| 6 Launch | Regeln/AGPL-Link, Einbindung mineclash.de, Lasttest + Beta, Tutorial ergänzen | #31–#33, #35 |
 
 ## Bewusst nicht geplant
 - **Chaos-Modus** (Zufalls-Modifikatoren) – widerspricht „kein Glücksspiel".
