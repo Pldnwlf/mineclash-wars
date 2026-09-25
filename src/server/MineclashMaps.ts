@@ -33,3 +33,8 @@ export const MINECLASH_ROTATION: ReadonlyMap<GameMapType, number> = new Map([
   [GameMapType.SoutheastAsia, 1], // 50
   [GameMapType.Asia, 1], // 55
 ]);
+
+// Default stake per rotation map in WindSMP-$ (#9, #30). Converted to coins at
+// the daily savings rate when the lobby is created (#22) — ~10 coins at
+// ~1,000 W$/coin. Per-map overrides come from the mineclash admin later.
+export const DEFAULT_ROTATION_STAKE_DOLLARS = 10_000;
