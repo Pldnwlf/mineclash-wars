@@ -22,6 +22,7 @@ import {
 } from "../core/Schemas";
 import { logger } from "./Logger";
 import { getMapLandTiles } from "./MapLandTiles";
+import { MINECLASH_ROTATION } from "./MineclashMaps";
 
 const log = logger.child({});
 
@@ -667,6 +668,7 @@ export class MapPlaylist {
           }
           break;
       }
+      freq = MINECLASH_ROTATION.get(map) ?? 0;
       for (let i = 0; i < freq; i++) {
         maps.push(map);
       }

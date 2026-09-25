@@ -43,13 +43,13 @@ Look & Feel nach FrontWars (Stil nachgebaut, alter offener FrontWars-Client als 
 - Keine Limits, Selbstsperre oder Altersgrenze (#26, zu).
 - Assets von FrontWars übernehmen mit Herkunftshinweis in `CREDITS.md` (#3). Logo = MineClash-Logo, Schrift Overpass,
   Musik von NCS – Soundtrack wird später ausgesucht, bis dahin ohne Musik (#37).
+- Rotation: 20 kleine, meistgespielte OpenFront-Karten (≤ 45 Spieler) + 4 mit ~50 Spielern (#9, `src/server/MineclashMaps.ts`).
 - Admin-Panel bekommt eine eigene **Statistik-Seite** zum Spiel (Matches, Einsätze, Spieler, Zeiten, …) (#38).
 - Alle Entscheide (2026-09-24/25) stehen im Abschnitt „Entscheide“ der Issues. Das Konzept-Doc ist in Teilen überholt
   (Allianzen aus, Stufen 10/100/1000, Top-3-Verteilung) – es gelten die Issues.
 
 ## Noch offen
 - Tap-to-Attack mobil (#18), konkrete Farbpalette (#17), Soundtrack + Start-Alarm (#37), Beta-Teilnehmer (#33), endgültiger Name (#7).
-- Welche ~10 der 128 OpenFront-Karten in die Rotation kommen (#9).
 - Dauer der Einsatz-Sperre bei Teaming (#27); wie die Investoren-Bilanz (Vouch) Match-Gewinne zeigt (#22).
 
 ## Kritischer Pfad bis zum ersten Einsatz-Match
