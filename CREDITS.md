@@ -5,6 +5,17 @@
 OpenFront is licensed under AGPL-3.0.  
 See [Contributors](https://github.com/openfrontio/OpenFrontIO/graphs/contributors) for code contributors.
 
+### FrontWars
+
+Look and parts of the HUD follow the open [FrontWars](https://github.com/silverleafsolutions/FrontWars) client
+(client code GPL v3, state 2025-09-29): control panel with donate sliders, build bar tiles, event log filters,
+menu layout. GPL v3 code is combined here under AGPL-3.0. FrontWars' closed live client, name and logo are not used.
+
+### Source
+
+Source code of the running version: [github.com/Pldnwlf/mineclash-wars](https://github.com/Pldnwlf/mineclash-wars)
+(branch `release` = what is deployed on play.mineclash.de).
+
 ## Logo
 
 `resources/images/mineclash/` (Logo, mobile logo, favicon) is the **MineClash** logo from [mineclash.de](https://mineclash.de)
