@@ -31,6 +31,7 @@ import { PublicLobbySocket } from "./LobbySocket";
 import { JoinLobbyEvent } from "./Main";
 import { Features } from "./mineclash/Features";
 import "./mineclash/menu/MineclashMenu";
+import { runStakeJoinGate, showRulesPopup, toast } from "./mineclash/StakeApi";
 import {
   backendUnreachableConfirmed,
   isPinnedToAVersion,
@@ -1042,6 +1043,19 @@ export class GameModeSelector extends LitElement {
       return;
     }
 
+    // mineclash #23: stake lobby => status / login / rules / balance first.
+    const stake = lobby.gameConfig?.mineclashStake?.coins;
+    if (stake !== undefined) {
+      void runStakeJoinGate(stake, {
+        showRules: showRulesPopup,
+        notify: toast,
+      }).then((ok) => ok && this.dispatchJoin(lobby, inline));
+      return;
+    }
+    this.dispatchJoin(lobby, inline);
+  }
+
+  private dispatchJoin(lobby: PublicGameInfo, inline: boolean) {
     this.dispatchEvent(
       new CustomEvent("join-lobby", {
         detail: {

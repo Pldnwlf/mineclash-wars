@@ -76,13 +76,14 @@ export class HistoryModal extends BaseModal {
 
 /**
  * Popup shown before the first stake match join: rules + big "Accept" button.
- * Interface only: the caller shows it (`show()`) and passes `onAccept`.
- * Storing the acceptance per UUID server-side and gating the stake join on it
- * comes with #21/#23 (login + stake lobbies); nothing is persisted here.
+ * The caller shows it (`show()`) and passes `onAccept`; StakeApi
+ * (runStakeJoinGate) stores the acceptance via POST rules-accept (#23).
  */
 @customElement("rules-popup")
 export class RulesPopup extends LitElement {
   @property({ attribute: false }) onAccept: () => void = () => {};
+  // mineclash #23: optional "Cancel" (stake join gate).
+  @property({ attribute: false }) onCancel: (() => void) | null = null;
   @state() private visible = false;
 
   createRenderRoot() {
@@ -125,6 +126,17 @@ export class RulesPopup extends LitElement {
           >
             ${translateText("mineclash.accept")}
           </button>
+          ${this.onCancel
+            ? html`<button
+                class="mt-2 w-full rounded-lg py-2 text-sm text-gray-300 hover:text-white"
+                @click=${() => {
+                  this.hide();
+                  this.onCancel?.();
+                }}
+              >
+                ${translateText("common.cancel")}
+              </button>`
+            : ""}
         </div>
       </div>
     </div>`;

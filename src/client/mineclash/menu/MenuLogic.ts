@@ -46,22 +46,35 @@ export function glowClass(isJoined: boolean): string {
 
 // ---- lobby selection -------------------------------------------------------
 
-/**
- * The one lobby a rotation card shows. Free card = first scheduled public
- * lobby of the existing playlist. Stake card: none until #23 delivers stake
- * lobbies (then pick by a stake field here); the card shows "coming soon".
- */
+function allLobbies(games: PublicGames["games"] | undefined) {
+  return Object.values(games ?? {}).flat();
+}
+
+/** Rotation lobbies (mineclashRules) first, then any other public lobby. */
+function firstPreferRotation(list: PublicGameInfo[]): PublicGameInfo | null {
+  return (
+    list.find((g) => g.gameConfig?.mineclashRules !== undefined) ??
+    list[0] ??
+    null
+  );
+}
+
+/** Free card = public lobby without stake (rotation preferred). */
 export function pickFreeLobby(
   games: PublicGames["games"] | undefined,
 ): PublicGameInfo | null {
-  return games?.ffa?.[0] ?? games?.team?.[0] ?? games?.special?.[0] ?? null;
+  return firstPreferRotation(
+    allLobbies(games).filter((g) => !g.gameConfig?.mineclashStake),
+  );
 }
 
+/** mineclash #23: stake card = public lobby with mineclashStake. */
 export function pickStakeLobby(
-  _games: PublicGames["games"] | undefined,
+  games: PublicGames["games"] | undefined,
 ): PublicGameInfo | null {
-  // mineclash #23: stake lobbies do not exist yet.
-  return null;
+  return firstPreferRotation(
+    allLobbies(games).filter((g) => g.gameConfig?.mineclashStake),
+  );
 }
 
 export function activeLobbyIDs(
@@ -78,15 +91,23 @@ export function ringFraction(remainingSec: number, totalSec: number): number {
   return Math.min(1, Math.max(0, remainingSec / totalSec));
 }
 
-// ---- stake / rate (interface until #22/#23) --------------------------------
+// ---- stake / rate (#23) ----------------------------------------------------
 
 export interface StakeInfo {
   coins: number;
 }
 
-/** USD per coin, from the Sparbuch rate (daily). null = unknown (#22). */
-export async function fetchCoinRateUsd(): Promise<number | null> {
-  return null;
+/** Stake of a lobby card, null = free. */
+export function stakeOf(lobby: PublicGameInfo | null): StakeInfo | null {
+  const c = lobby?.gameConfig?.mineclashStake?.coins;
+  return c === undefined ? null : { coins: c };
+}
+
+/** Empty text of the stake card: wallet down vs. no lobby. */
+export function stakeEmptyKey(walletReady: boolean | undefined): string {
+  return walletReady === false
+    ? "mineclash.stake_unavailable"
+    : "mineclash.menu_no_stake_lobby";
 }
 
 /** 100 coins at 1000 => "$100K". */

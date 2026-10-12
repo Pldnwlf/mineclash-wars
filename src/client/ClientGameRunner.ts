@@ -80,6 +80,7 @@ import { WorkerClient } from "./WorkerClient";
 import { MapLayerController } from "./controllers/MapLayerController";
 import { createRenderer, GameRenderer } from "./hud/GameRenderer";
 import { goldRateTracker } from "./hud/layers/lib/GoldRateTracker";
+import { stakeKickText } from "./mineclash/StakeApi";
 import {
   applyGraphicsOverrides,
   createRenderSettings,
@@ -341,6 +342,21 @@ export function joinLobby(
             }),
           );
         });
+      } else if (stakeKickText(message.error) !== null) {
+        // mineclash #23: stake join refused (guest, rules, funds, IP, wallet)
+        const text = stakeKickText(message.error) ?? "";
+        document.dispatchEvent(
+          new CustomEvent("leave-lobby", {
+            detail: { lobby: lobbyConfig.gameID, cause: message.error },
+            bubbles: true,
+            composed: true,
+          }),
+        );
+        window.dispatchEvent(
+          new CustomEvent("show-message", {
+            detail: { message: text, color: "red", duration: 7000 },
+          }),
+        );
       } else if (message.error === "kick_reason.match_cancelled") {
         // A matched player never connected and the server cancelled the game
         // pre-start. Tear down the dead lobby, then put the matchmaking

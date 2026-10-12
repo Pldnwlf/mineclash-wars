@@ -1,4 +1,8 @@
-import { GameMode, type Team } from "@openfront/engine-api/game/GameTypes";
+import {
+  GameMode,
+  PlayerType,
+  type Team,
+} from "@openfront/engine-api/game/GameTypes";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import type { EventBus } from "@openfront/shared/EventBus";
 import { Colord } from "colord";
@@ -106,6 +110,15 @@ export class GameLeftSidebar extends LitElement implements Controller {
     this.isTeamStatsShown = !this.isTeamStatsShown;
   }
 
+  // mineclash #23: stake matches show the pot instead of the economy mode.
+  private badgeText(): string {
+    const coins = this.game?.config().gameConfig().mineclashStake?.coins;
+    const humans =
+      this.game?.players().filter((p) => p.type() === PlayerType.Human)
+        .length ?? 0;
+    return leaderboardBadgeText(coins, humans);
+  }
+
   private get isTeamGame(): boolean {
     return this.game?.config().gameConfig().gameMode === GameMode.Team;
   }
@@ -175,7 +188,7 @@ export class GameLeftSidebar extends LitElement implements Controller {
           ${this.isPlayerStatsShown || this.isTeamStatsShown
             ? html`<span
                   class="rounded bg-sky-700/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                  >${leaderboardBadgeText()}</span
+                  >${this.badgeText()}</span
                 ><span
                   class="ml-auto text-[10px] text-slate-500 select-all leading-none self-start"
                   title=${translateText("help_modal.game_id_tooltip")}

@@ -77,9 +77,17 @@ describe("lobby host UI", () => {
 describe("lobby stake area", () => {
   it("is hidden without a stake and shows stake + pot with one", () => {
     const root = document.createElement("div");
-    render(renderLobbyStake(null, 3, false), root);
+    render(renderLobbyStake(null), root);
     expect(root.querySelector("[data-test-lobby-stake]")).toBeNull();
-    render(renderLobbyStake({ stakePerPlayer: 100 }, 3, true), root);
+    render(
+      renderLobbyStake({
+        stakePerPlayer: 100,
+        pot: 300,
+        rake: 15,
+        donations: true,
+      }),
+      root,
+    );
     expect(
       root.querySelector("[data-test-lobby-stake]")?.textContent,
     ).toContain("300");

@@ -14,16 +14,18 @@ import {
   getSecondsUntilServerTimestamp,
   translateText,
 } from "../../Utils";
+import { fetchStakeStatus, StakeStatus } from "../StakeApi";
 import {
   activeLobbyIDs,
-  fetchCoinRateUsd,
   formatUsd,
   glowClass,
   joinedFromEvent,
   pickFreeLobby,
   pickStakeLobby,
   ringFraction,
+  stakeEmptyKey,
   StakeInfo,
+  stakeOf,
   syncJoined,
   toggleJoin,
 } from "./MenuLogic";
@@ -52,7 +54,7 @@ export class MineclashMenu extends LitElement {
   @property({ attribute: false }) onTutorial: () => void = () => {};
 
   @state() private joined: string | null = null;
-  @state() private rate: number | null = null;
+  @state() private status: StakeStatus | null = null;
 
   createRenderRoot() {
     return this;
@@ -62,9 +64,9 @@ export class MineclashMenu extends LitElement {
     super.connectedCallback();
     document.addEventListener("join-lobby", this.onJoinEvent);
     document.addEventListener("leave-lobby", this.onLeaveEvent);
-    fetchCoinRateUsd()
-      .then((r) => (this.rate = r))
-      .catch(() => (this.rate = null));
+    fetchStakeStatus()
+      .then((s) => (this.status = s))
+      .catch(() => (this.status = null));
   }
 
   disconnectedCallback() {
@@ -134,7 +136,7 @@ export class MineclashMenu extends LitElement {
   }
 
   private stakeRow(stake: StakeInfo) {
-    const usd = formatUsd(stake.coins, this.rate);
+    const usd = formatUsd(stake.coins, this.status?.wdPerCoin ?? null);
     return html`<span class="font-bold text-cyber-yellow"
       >&#129689;
       ${stake.coins}${usd
@@ -252,7 +254,9 @@ export class MineclashMenu extends LitElement {
 
   render() {
     const games = this.lobbies?.games;
-    const stakeLobby = pickStakeLobby(games);
+    // mineclash #23: wallet down => no stake card content, only the notice.
+    const stakeLobby =
+      this.status?.walletReady === false ? null : pickStakeLobby(games);
     const freeLobby = pickFreeLobby(games);
     return html`<div
       class="mx-auto flex w-full flex-col gap-4 px-4 pb-4 sm:px-0"
@@ -263,9 +267,8 @@ export class MineclashMenu extends LitElement {
         ${this.card(
           "mineclash.menu_next_stake",
           stakeLobby,
-          // mineclash #23: the stake comes from the lobby once it has one.
-          stakeLobby ? { coins: 0 } : null,
-          translateText("mineclash.menu_stake_soon"),
+          stakeOf(stakeLobby),
+          translateText(stakeEmptyKey(this.status?.walletReady)),
         )}
         ${this.card(
           "mineclash.menu_next_free",
