@@ -2,9 +2,9 @@
 // State is per match: init() always starts visible. Hiding is one body class +
 // one stylesheet, so layer visibility lives in this single place.
 import { EventBus } from "@openfront/shared/EventBus";
-import { UserSettings } from "../UserSettings";
 import { Controller } from "../Controller";
 import { CloseViewEvent, ToggleHudEvent } from "../InputHandler";
+import { UserSettings } from "../UserSettings";
 
 const HIDDEN_CLASS = "mc-hud-hidden";
 const BUTTON_ID = "mc-hud-eye";

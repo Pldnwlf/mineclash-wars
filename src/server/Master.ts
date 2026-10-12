@@ -170,7 +170,7 @@ export async function startMaster() {
 
   // A server that registers schedules nothing until the API calls it open: a
   // mistyped letter must not mint lobbies under a letter routed elsewhere.
-  const registers = checkinBody(0) !== null;
+  const registers = ServerEnv.openfrontApi() && checkinBody(0) !== null; // mineclash #4
   lobbyService = new MasterLobbyService(playlist, log, registers);
   installDrain(lobbyService, log); // mineclash #41
 
@@ -190,7 +190,7 @@ export async function startMaster() {
   // own lobbies exactly as it does without a coordinator.
   const hello = checkinBody(0);
   const coordinator = coordinatorUrl(registeredSite());
-  if (coordinator !== null && hello !== null) {
+  if (ServerEnv.openfrontApi() && coordinator !== null && hello !== null) {
     log.info(`Joining lobby coordinator at ${coordinator}`);
     const client = new LobbyCoordinatorClient({
       url: coordinator,

@@ -197,7 +197,11 @@ export function defaultGameServerDeps(): GameServerDeps {
     archive: (record) => archive(finalizeGameRecord(record)),
     replayWinner: replayWinnerInChild,
     onMineclashResult: () => {},
-    fetchTribes: fetchCustomTribes,
+    // mineclash #4: no custom tribes without the OpenFront API.
+    fetchTribes: (players) =>
+      ServerEnv.openfrontApi()
+        ? fetchCustomTribes(players)
+        : Promise.resolve([]),
     env: () => ServerEnv.env(),
     turnIntervalMs: () => ServerEnv.turnIntervalMs(),
     telemetry: noopMatchTelemetryEmitter,

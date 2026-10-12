@@ -45,6 +45,7 @@ import "./GameStatsModal";
 import { showInGameAlert } from "./InGameModal";
 import { consumeLinkResult } from "./LinkResult";
 import { consumeLoginResult, LoginResult } from "./LoginResult";
+import { Features } from "./mineclash/Features";
 import "./PlayerProfileModal";
 import { steamSDK } from "./SteamSDK";
 import { playerProfileUrl } from "./utilities/PlayerProfileUrl";
@@ -828,6 +829,19 @@ export class AccountModal extends BaseModal {
     // on ANY desktop shell (a shell too old to expose showLinkGate gets an
     // update prompt instead), so the web caption would be wrong on every one
     // of them.
+    // mineclash #21: no OpenFront providers; login happens on mineclash.de.
+    if (!Features.openfrontAuth) {
+      return html`<div class="p-6 text-center text-white/70">
+        <p class="mb-4">${translateText("account_modal.mineclash_login")}</p>
+        <a
+          class="font-bold text-blue-400 underline"
+          href="https://mineclash.de"
+          target="_blank"
+          rel="noopener noreferrer"
+          >mineclash.de</a
+        >
+      </div>`;
+    }
     const viaBrowser = isDesktopShell();
     return html`
       <div class="flex items-center justify-center p-6 min-h-full">

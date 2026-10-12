@@ -48,6 +48,10 @@ export const TokenPayloadSchema = z.object({
     .or(z.string())
     .optional(),
   provider: z.string().optional(),
+  // mineclash #21: MC name (always shown in the match for logged-in players)
+  // and guest flag (guest JWT: free name, no stake lobbies).
+  name: z.string().optional(),
+  guest: z.boolean().optional(),
 });
 export type TokenPayload = z.infer<typeof TokenPayloadSchema>;
 

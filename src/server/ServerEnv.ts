@@ -115,6 +115,13 @@ export class ServerEnv {
     const v = process.env.MINECLASH_API_URL;
     return v ? v.replace(/\/$/, "") : undefined;
   }
+  // mineclash #4: calls to the closed OpenFront API (join_verify, cluster/ranked
+  // check-in, lobby coordinator, cosmetics/reserved tags, custom tribes, lobby
+  // queue payment, game preview) only run with OPENFRONT_API=1. The mineclash
+  // API (contract in mineclash/MineclashApi.ts) has none of these endpoints.
+  static openfrontApi(): boolean {
+    return process.env.OPENFRONT_API === "1";
+  }
   static jwtIssuer(): string {
     const override = ServerEnv.mineclashApiUrl();
     if (override) return override;

@@ -382,6 +382,10 @@ export default defineConfig(({ mode }) => {
       "process.env.API_DOMAIN": JSON.stringify(
         mode === "test" ? "" : (env.API_DOMAIN ?? ""),
       ),
+      // mineclash #21: allowed postMessage origin for the login handover.
+      "process.env.MINECLASH_LOGIN_ORIGIN": JSON.stringify(
+        mode === "test" ? "" : (env.MINECLASH_LOGIN_ORIGIN ?? ""),
+      ),
       // Add other process.env variables if needed, OR migrate code to import.meta.env
     },
 
