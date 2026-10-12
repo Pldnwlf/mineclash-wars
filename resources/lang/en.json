@@ -1633,6 +1633,8 @@
     "stake_2": "The winner gets the whole pot minus a 5 % rake. The rake is burned. A rounding remainder is burned with it.",
     "stake_3": "The payout happens right after the server has checked the result. There is no extra randomness for money: attacks, spawn and nations are as in a normal match.",
     "stake_title": "Stake and pot",
+    "threshold": "Win: {percent} %",
+    "threshold_overtime": "Win: {percent} % · Overtime",
     "win_1": "Only humans can win. Nations and bots do not count. The last human with territory wins.",
     "win_2": "A human also wins with 80 % of the land. From minute 15 overtime starts and the needed share drops by 1 % per minute. At minute 25 (70 %) the match ends and the human with the most land wins.",
     "win_3": "A tie splits the pot equally. In team modes the winning team shares equally.",
