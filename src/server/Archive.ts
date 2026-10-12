@@ -1,5 +1,4 @@
 import { GameID, ID } from "@openfront/engine-api/Schemas";
-import { replacer } from "@openfront/shared/SharedUtil";
 import {
   GameRecord,
   GameRecordSchema,
@@ -9,6 +8,7 @@ import z from "zod";
 import { registeredSite } from "./ClusterCheckin";
 import { logger } from "./Logger";
 import { readMatchRecord, writeMatchRecord } from "./MineclashArchive";
+import { writeHistory } from "./MineclashHistory";
 import { ServerEnv } from "./ServerEnv";
 
 const log = logger.child({ component: "Archive" });
@@ -24,6 +24,10 @@ export async function archive(gameRecord: GameRecord) {
     }
     // mineclash #29: eigene Ablage statt closed-source API
     await writeMatchRecord(gameRecord);
+    // mineclash #40: Match-Historie je Teilnehmer
+    await writeHistory(gameRecord).catch((e) =>
+      log.error(`history write failed: ${e}`),
+    );
   } catch (error) {
     log.error(`error archiving game record: ${error}`, {
       gameID: gameRecord.info.gameID,

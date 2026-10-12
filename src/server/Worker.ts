@@ -51,6 +51,7 @@ import {
   scrubForPublic,
   startArchiveCleanup,
 } from "./MineclashArchive";
+import { historyResponse, startHistoryCleanup } from "./MineclashHistory";
 import { postMatchReport } from "./MineclashReports";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { PrivilegeRefresher } from "./PrivilegeRefresher";
@@ -519,7 +520,25 @@ export async function startWorker() {
       res.status(500).json({ error: "Report error" });
     }
   });
-  if (workerId === 0) startArchiveCleanup();
+  // mineclash #40: eigene Matches (nur eingeloggt, keine Gaeste)
+  app.get("/api/history", async (req, res) => {
+    const token = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
+    const auth = await verifyClientToken(token);
+    if (auth.type !== "success")
+      return res.status(401).json({ error: "Invalid token" });
+    try {
+      const out = await historyResponse(auth.persistentId, auth.claims);
+      res.status(out.status).json(out.body);
+    } catch (e) {
+      log.error(`history read failed: ${e}`);
+      res.status(500).json({ error: "History error" });
+    }
+  });
+  if (workerId === 0) {
+    startArchiveCleanup();
+    startHistoryCleanup();
+  }
 
   registerGamePreviewRoute({
     app,
