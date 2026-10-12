@@ -27,6 +27,7 @@ import {
   installDrain,
   registerDrainRoutes,
 } from "./mineclash/MineclashDrain";
+import { getWallet } from "./mineclash/MineclashWallet";
 import { startKumaPush } from "./MineclashAlerts";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { startPolling } from "./PollingLoop";
@@ -211,6 +212,10 @@ export async function startMaster() {
 
   // mineclash #43: Kuma-Lebenszeichen (nur mit env)
   startKumaPush(() => lobbyService.isHealthy());
+
+  // mineclash #22/#42: serverStart (Neustart-Freigabe, offene Settles
+  // ausgenommen) VOR jeder neuen Hold, also vor dem Forken der Worker.
+  await getWallet()?.start();
 
   // Fork workers
   for (let i = 0; i < ServerEnv.numWorkers(); i++) {

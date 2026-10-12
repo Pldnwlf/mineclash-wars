@@ -20,6 +20,10 @@ export type MineclashResult =
 export type MineclashResultHandler = (
   gameID: string,
   result: MineclashResult,
+  ctx: {
+    config: { mineclashStake?: { coins: number } };
+    persistentIdOf: (clientId: string) => string | undefined;
+  },
 ) => void;
 
 const refund = (reason: RefundReason): MineclashResult => ({

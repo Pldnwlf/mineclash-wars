@@ -9,6 +9,7 @@ import { createHash, timingSafeEqual } from "crypto";
 import type { Express, Request } from "express";
 import type { MasterLobbyService } from "../MasterLobbyService";
 import { ServerEnv } from "../ServerEnv";
+import { hasOpenSettleFiles } from "./MineclashWallet";
 
 /** Obergrenze (Minuten) fuer Matches ab Drain-Start; danach Abbruch. */
 export function drainMaxMatchMs(): number {
@@ -31,10 +32,10 @@ export function drainAuthorized(provided: unknown): boolean {
 
 /**
  * mineclash #42: true solange Auszahlungen (Settles) noch nicht bestaetigt
- * sind. Der Prozess darf dann nicht beenden. Heute immer false.
+ * sind (Dateien in MINECLASH_DATA_DIR/settles). Der Prozess darf dann nicht beenden.
  */
 export function hasPendingSettles(): boolean {
-  return false;
+  return hasOpenSettleFiles();
 }
 
 export function drainStatus(service: MasterLobbyService | undefined) {

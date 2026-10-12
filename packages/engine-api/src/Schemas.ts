@@ -272,6 +272,7 @@ export const GameConfigSchema = z.object({
   doomsdayClock: DoomsdayClockConfigSchema.optional(),
   overtime: OvertimeConfigSchema.optional(),
   mineclashRules: MineclashRulesSchema.optional(), // mineclash #9
+  mineclashStake: z.object({ coins: zb.uint({ min: 1 }) }).optional(), // mineclash #22/#23: Einsatz in Coins
   publicGameModifiers: z
     .object({
       isCompact: z.boolean().optional(),
