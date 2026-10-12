@@ -1202,6 +1202,25 @@ export class UserSettingModal extends BaseModal {
         @change=${this.handleKeybindChange}
       ></setting-keybind>
 
+      <setting-toggle
+        label=${translateText("user_setting.hide_interface_label")}
+        description=${translateText("user_setting.hide_interface_desc")}
+        .checked=${this.userSettings.hideInterfaceEnabled()}
+        @change=${() => {
+          this.userSettings.toggleHideInterface(); // mineclash #16
+        }}
+      ></setting-toggle>
+
+      <setting-keybind
+        action="hideInterface"
+        label=${translateText("user_setting.hide_interface_key_label")}
+        description=${translateText("user_setting.hide_interface_key_desc")}
+        defaultKey=${this.defaultKeybinds.hideInterface}
+        .value=${this.getKeyValue("hideInterface")}
+        .display=${this.getKeyChar("hideInterface")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
       <setting-keybind
         action="altKey"
         label=${translateText("user_setting.graphics_refresh_modifier")}

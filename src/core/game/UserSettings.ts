@@ -20,6 +20,7 @@ export function getDefaultKeybinds(isMac: boolean): Record<string, string> {
   return {
     toggleView: "Space",
     coordinateGrid: "KeyM",
+    hideInterface: "KeyH", // mineclash #16
     buildCity: "Digit1",
     buildFactory: "Digit2",
     buildPort: "Digit3",
@@ -384,6 +385,15 @@ export class UserSettings {
 
   performanceOverlay() {
     return this.getBool(PERFORMANCE_OVERLAY_KEY, false);
+  }
+
+  // mineclash #16
+  hideInterfaceEnabled() {
+    return this.getBool("settings.hideInterface", true);
+  }
+
+  toggleHideInterface() {
+    this.setBool("settings.hideInterface", !this.hideInterfaceEnabled());
   }
 
   alertFrame() {
