@@ -25,6 +25,7 @@ import {
   assignTeamsLobbyPreview,
   resolveTeamsList,
 } from "@openfront/engine-lib/game/TeamAssignment";
+import type { ReplayedWinner } from "@openfront/engine/WinnerReplay";
 import { isAdminRole } from "@openfront/shared/ApiSchemas";
 import { CloseCode, CloseReason } from "@openfront/shared/CloseCodes";
 import { GameEnv } from "@openfront/shared/configuration/Env";
@@ -78,6 +79,10 @@ import { ListingState } from "./ListingState";
 import { identityFor, MatchTelemetryRecorder } from "./MatchTelemetryRecorder";
 import { ReportRequest } from "./mineclash/MineclashApi";
 import { submitReport, toUuid } from "./MineclashReports";
+import {
+  mineclashResult,
+  type MineclashResultHandler,
+} from "./MineclashVerify";
 import { friendsLookup, NameVisibility } from "./NameVisibility";
 import { poolTargetFor } from "./PoolRouting";
 import { Roster } from "./Roster";
@@ -163,6 +168,8 @@ export interface GameServerDeps {
   archive: (record: PartialGameRecord) => Promise<void>;
   // Replays the game to settle a disputed winner vote (see settleWinner).
   replayWinner: WinnerReplayer;
+  // mineclash #24: binding result of a mineclashRules match (payout hook).
+  onMineclashResult: MineclashResultHandler;
   fetchTribes: typeof fetchCustomTribes;
   env: () => GameEnv;
   turnIntervalMs: () => number;
@@ -189,6 +196,7 @@ export function defaultGameServerDeps(): GameServerDeps {
   return {
     archive: (record) => archive(finalizeGameRecord(record)),
     replayWinner: replayWinnerInChild,
+    onMineclashResult: () => {},
     fetchTribes: fetchCustomTribes,
     env: () => ServerEnv.env(),
     turnIntervalMs: () => ServerEnv.turnIntervalMs(),
@@ -262,6 +270,9 @@ export class GameServer {
   // The end-of-game winner vote and the running live-stats vote: both
   // IP-weighted majorities among the players (see Consensus.ts).
   private readonly winnerVote = new WinnerVote();
+  // mineclash #24: replay running / binding result already handed on.
+  private verifying = false;
+  private verified = false;
   private readonly liveStatsVote = new LiveStatsVote();
 
   // Player reports filed this game, keyed "<reportedBy>:<reported>" so each
@@ -1562,7 +1573,7 @@ export class GameServer {
         this.log.info("no clients joined, not archiving game", {
           gameID: this.id,
         });
-      } else if (this.winnerVote.winner() !== null) {
+      } else if (this.winnerVote.winner() !== null && !this.awaitingVerify()) {
         this.log.info("game already archived", {
           gameID: this.id,
         });
@@ -1970,7 +1981,12 @@ export class GameServer {
   private settleWinner() {
     const voted = this.winnerVote.winner();
     const candidates = this.winnerVote.candidates();
-    if (candidates === 0 || (candidates === 1 && voted !== null)) {
+    // mineclash #24: stake matches are always replayed, a vote never decides.
+    const mineclash = this.isMineclash();
+    if (mineclash) {
+      if (this.verifying || this.verified) return;
+      this.verifying = true;
+    } else if (candidates === 0 || (candidates === 1 && voted !== null)) {
       this.archiveGame(voted);
       return;
     }
@@ -1986,6 +2002,7 @@ export class GameServer {
     this.deps
       .replayWinner(this.wireGameStartInfo, turns)
       .then((replayed) => {
+        if (mineclash && !this.finishVerify(replayed, voted)) return;
         if (replayed === null) {
           winnerReplayMetrics.outcomes.failed++;
           this.archiveGame(voted, turns, endTime);
@@ -2031,10 +2048,55 @@ export class GameServer {
         this.archiveGame(replayed, turns, endTime);
       })
       .catch((error) => {
+        this.verifying = false;
         this.log.error(`error archiving replayed game: ${error}`, {
           gameID: this.id,
         });
       });
+  }
+
+  // mineclash #24: matches played under the stake/rotation win rules.
+  private isMineclash(): boolean {
+    return this.gameConfig.mineclashRules !== undefined;
+  }
+
+  // A decided vote whose replay found no result yet (premature vote) waits
+  // for end() and its complete turn log.
+  private awaitingVerify(): boolean {
+    return this.isMineclash() && !this.verified;
+  }
+
+  // Computes the binding result and hands it on. Returns false when the
+  // match is not over yet (the turns ran out before any result while the
+  // game still runs): nothing is final, end() settles later.
+  private finishVerify(
+    replayed: ReplayedWinner | null,
+    voted: ClientSendWinnerMessage | null,
+  ): boolean {
+    this.verifying = false;
+    const result = mineclashResult(
+      this.wireGameStartInfo,
+      replayed,
+      voted?.winner,
+      voted !== null,
+    );
+    if (
+      !this.ended &&
+      result.kind === "refund" &&
+      result.reason === "aborted"
+    ) {
+      return false;
+    }
+    this.verified = true;
+    this.log.info("mineclash result", { gameID: this.id, result });
+    try {
+      this.deps.onMineclashResult(this.id, result);
+    } catch (error) {
+      this.log.error(`mineclash result handler failed: ${error}`, {
+        gameID: this.id,
+      });
+    }
+    return true;
   }
 
   private archiveGame(
@@ -2227,7 +2289,8 @@ export class GameServer {
   // winnerless (e.g. game s5bcKtj8). Re-tally whenever the electorate
   // shrinks, counting only votes from still-active IPs (see resultAmong).
   private checkWinnerAfterElectorateShrink() {
-    if (this.winnerVote.winner() !== null || this.ended) {
+    // mineclash #24: a lone survivor's vote must never decide a stake match.
+    if (this.winnerVote.winner() !== null || this.ended || this.isMineclash()) {
       return;
     }
     const activeIPs = new Set(this.clients.active().map((c) => c.ip));
