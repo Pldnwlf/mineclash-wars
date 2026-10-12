@@ -131,7 +131,9 @@ export class TutorialPanel extends LitElement implements Controller {
     // subscribed to TutorialStateEvent.
     if (!this.started) {
       this.started = true;
-      this.setActive(!this.userSettings.tutorialDismissed());
+      this.setActive(
+        this.firstVisit() || !this.userSettings.tutorialDismissed(),
+      );
     }
     if (!this.active) return;
 
@@ -376,6 +378,8 @@ export class TutorialPanel extends LitElement implements Controller {
         .isUnitDisabled(UnitType.HydrogenBomb),
       mirvDisabled: this.game.config().isUnitDisabled(UnitType.MIRV),
       samDisabled: this.game.config().isUnitDisabled(UnitType.SAMLauncher),
+      donateEnabled:
+        this.game.config().donateTroops() || this.game.config().donateGold(),
     };
   }
 
@@ -402,6 +406,22 @@ export class TutorialPanel extends LitElement implements Controller {
       this.syncMapMarkers(null);
       this.game.setOwnSpawnRing(false);
     }
+  }
+
+  /**
+   * mineclash #35: true exactly once per browser. That visit opens the
+   * tutorial automatically and then marks it dismissed, so later games stay
+   * quiet until the play page's Tutorial card switches it back on.
+   */
+  private firstVisit(): boolean {
+    try {
+      if (localStorage.getItem("mineclash.tutorialSeen")) return false;
+      localStorage.setItem("mineclash.tutorialSeen", "1");
+      this.userSettings.setTutorialDismissed(true);
+    } catch {
+      return false;
+    }
+    return true;
   }
 
   private dismissForever() {
@@ -450,6 +470,7 @@ export class TutorialPanel extends LitElement implements Controller {
     const step = this.progress.current();
     if (
       step === null ||
+      step.choice ||
       this.completeTicks !== null ||
       this.progress.stepDone()
     )
@@ -506,6 +527,7 @@ export class TutorialPanel extends LitElement implements Controller {
     }
     const step = this.progress.current();
     if (step === null) return nothing;
+    if (step.choice) return this.renderChoice();
     const done = this.progress.stepDone();
     return html`
       <p class="flex gap-1.5 ${done ? "text-green-400" : ""}">
@@ -526,6 +548,21 @@ export class TutorialPanel extends LitElement implements Controller {
             </ul>`
           : html`<span dir="auto">${this.stepText(step, done)}</span>`}
       </p>
+    `;
+  }
+
+  private renderChoice() {
+    const btn = "rounded-md border border-gray-500 hover:bg-gray-700 px-2 py-1";
+    return html`
+      <p dir="auto" class="mb-1.5">${translateText("tutorial.step.choice")}</p>
+      <div class="flex flex-col gap-1.5">
+        <button class=${btn} @click=${() => this.progress.choose(false)}>
+          ${translateText("tutorial.play_now")}
+        </button>
+        <button class=${btn} @click=${() => this.progress.choose(true)}>
+          ${translateText("tutorial.explain_buildings")}
+        </button>
+      </div>
     `;
   }
 
