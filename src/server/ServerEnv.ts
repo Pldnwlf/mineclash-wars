@@ -105,7 +105,15 @@ export class ServerEnv {
   static cdnBase(): string {
     return process.env.CDN_BASE ?? "";
   }
+  // mineclash #44: set => JWT issuer/API base is this URL (e.g. the local stub
+  // scripts/mineclash-api-stub.ts) and Dev no longer accepts bare persistent IDs.
+  static mineclashApiUrl(): string | undefined {
+    const v = process.env.MINECLASH_API_URL;
+    return v ? v.replace(/\/$/, "") : undefined;
+  }
   static jwtIssuer(): string {
+    const override = ServerEnv.mineclashApiUrl();
+    if (override) return override;
     const audience = ServerEnv.jwtAudience();
     return audience === "localhost"
       ? "http://localhost:8787"

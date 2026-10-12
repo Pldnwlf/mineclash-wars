@@ -22,7 +22,8 @@ export async function verifyClientToken(
   token: string,
 ): Promise<TokenVerificationResult> {
   if (PersistentIdSchema.safeParse(token).success) {
-    if (ServerEnv.env() === GameEnv.Dev) {
+    // mineclash #44: with MINECLASH_API_URL, Dev takes the prod JWT path.
+    if (ServerEnv.env() === GameEnv.Dev && !ServerEnv.mineclashApiUrl()) {
       return { type: "success", persistentId: token, claims: null };
     } else {
       return {
