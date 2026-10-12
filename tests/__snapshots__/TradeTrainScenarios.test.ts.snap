@@ -3,18 +3,18 @@
 exports[`trade ship scenarios > a thousand ports each, giant map 1`] = `
 {
   "a": {
-    "arrivalsPerMinute": 148.1,
-    "goldPerMinute": 64840000,
-    "shipsArrived": 1481,
+    "arrivalsPerMinute": 148,
+    "goldPerMinute": 64820000,
+    "shipsArrived": 1480,
     "shipsSent": 1549,
-    "tradeGold": 648354681n,
+    "tradeGold": 648192030n,
   },
   "b": {
     "arrivalsPerMinute": 143.3,
-    "goldPerMinute": 64840000,
+    "goldPerMinute": 64820000,
     "shipsArrived": 1433,
     "shipsSent": 1548,
-    "tradeGold": 648354681n,
+    "tradeGold": 648192030n,
   },
   "goldPerTrade": 222500,
 }
@@ -64,17 +64,17 @@ exports[`trade ship scenarios > fifty ports each, long route 1`] = `
 {
   "a": {
     "arrivalsPerMinute": 85.2,
-    "goldPerMinute": 25100000,
+    "goldPerMinute": 25120000,
     "shipsArrived": 568,
     "shipsSent": 857,
-    "tradeGold": 167359802n,
+    "tradeGold": 167493752n,
   },
   "b": {
-    "arrivalsPerMinute": 85.35,
-    "goldPerMinute": 25100000,
-    "shipsArrived": 569,
+    "arrivalsPerMinute": 85.5,
+    "goldPerMinute": 25120000,
+    "shipsArrived": 570,
     "shipsSent": 857,
-    "tradeGold": 167359802n,
+    "tradeGold": 167493752n,
   },
   "goldPerTrade": 147200,
 }
@@ -144,17 +144,17 @@ exports[`trade ship scenarios > ten ports, ~500-tile route 1`] = `
 {
   "a": {
     "arrivalsPerMinute": 43.6,
-    "goldPerMinute": 9147000,
+    "goldPerMinute": 9148000,
     "shipsArrived": 218,
     "shipsSent": 270,
-    "tradeGold": 45734142n,
+    "tradeGold": 45739352n,
   },
   "b": {
     "arrivalsPerMinute": 44.2,
-    "goldPerMinute": 9147000,
+    "goldPerMinute": 9148000,
     "shipsArrived": 221,
     "shipsSent": 271,
-    "tradeGold": 45734142n,
+    "tradeGold": 45739352n,
   },
   "goldPerTrade": 104200,
 }

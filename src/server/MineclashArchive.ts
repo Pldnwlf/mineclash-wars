@@ -3,8 +3,9 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { gunzipSync, gzipSync } from "zlib";
-import { GameID, GameRecord, ID } from "../core/Schemas";
-import { replacer } from "../core/Util";
+import { GameID, ID } from "@openfront/engine-api/Schemas";
+import { GameRecord } from "@openfront/shared/WireSchemas";
+import { replacer } from "@openfront/shared/SharedUtil";
 
 export const FREE_RETENTION_MS = 7 * 24 * 3600 * 1000;
 export const STAKE_RETENTION_MS = 90 * 24 * 3600 * 1000;

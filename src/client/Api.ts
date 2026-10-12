@@ -1,7 +1,4 @@
-import newsItemsFallback from "resources/news.json";
-import streamsFallback from "resources/streams.json";
-import { z } from "zod";
-import type { NewsItem, StreamsFeed } from "../core/ApiSchemas";
+import type { NewsItem, StreamsFeed } from "@openfront/shared/ApiSchemas";
 import {
   ClaimAllRewardsResponse,
   ClaimAllRewardsResponseSchema,
@@ -9,6 +6,9 @@ import {
   ClaimRewardResponseSchema,
   GetMyTribeNamesResponse,
   GetMyTribeNamesResponseSchema,
+  IdentityTokenAudiencesResponseSchema,
+  IdentityTokenResponse,
+  IdentityTokenResponseSchema,
   NewsItemSchema,
   PaymentsCheckoutResponse,
   PaymentsCheckoutResponseSchema,
@@ -43,13 +43,15 @@ import {
   TribeStatsResponseSchema,
   UserMeResponse,
   UserMeResponseSchema,
-} from "../core/ApiSchemas";
+} from "@openfront/shared/ApiSchemas";
 import {
   AnalyticsRecord,
   ArchivedAnalyticsRecordSchema,
   GameInfo,
-} from "../core/Schemas";
-import { UserSettings } from "../core/game/UserSettings";
+} from "@openfront/shared/WireSchemas";
+import newsItemsFallback from "resources/news.json";
+import streamsFallback from "resources/streams.json";
+import { z } from "zod";
 import { getApiBase, getAudience } from "./ApiBase";
 import {
   getAuthHeader,
@@ -60,6 +62,7 @@ import {
 } from "./Auth";
 import { ClientEnv } from "./ClientEnv";
 import { ensureServerList } from "./ServerList";
+import { UserSettings } from "./UserSettings";
 
 export async function fetchPlayerById(
   playerId: string,
@@ -403,6 +406,66 @@ export async function setMarketingConsent(
   } catch (e) {
     console.error("setMarketingConsent: request failed", e);
     return false;
+  }
+}
+
+// The sites a player can generate an identity token for. Fails closed: any
+// error lands on an empty list, which hides the account-settings card.
+export async function getIdentityTokenAudiences(): Promise<string[]> {
+  const { audiences } = await getServedConfig(
+    "public/identity_token/audiences",
+    IdentityTokenAudiencesResponseSchema,
+    { audiences: [] },
+  );
+  return audiences;
+}
+
+export type IdentityTokenResult =
+  | { ok: true; data: IdentityTokenResponse }
+  // 401: the session is gone.
+  | { ok: false; code: "logged_out" }
+  // 429: more than 10 requests/min from this IP.
+  | { ok: false; code: "rate_limited" }
+  | { ok: false; code: "failed" };
+
+// POST /users/@me/identity_token — mint a 10-minute token proving which
+// account the player owns, valid only on `audience`. Nothing is stored
+// server-side and callers must not cache it: mint a fresh one per request.
+export async function createIdentityToken(
+  audience: string,
+): Promise<IdentityTokenResult> {
+  try {
+    const response = await fetch(`${getApiBase()}/users/@me/identity_token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: await getAuthHeader(),
+      },
+      body: JSON.stringify({ audience }),
+    });
+    if (response.status === 401) {
+      return { ok: false, code: "logged_out" };
+    }
+    if (response.status === 429) {
+      return { ok: false, code: "rate_limited" };
+    }
+    if (!response.ok) {
+      console.error(
+        "createIdentityToken: request failed",
+        response.status,
+        response.statusText,
+      );
+      return { ok: false, code: "failed" };
+    }
+    const parsed = IdentityTokenResponseSchema.safeParse(await response.json());
+    if (!parsed.success) {
+      console.error("createIdentityToken: invalid response", parsed.error);
+      return { ok: false, code: "failed" };
+    }
+    return { ok: true, data: parsed.data };
+  } catch (e) {
+    console.error("createIdentityToken: request failed", e);
+    return { ok: false, code: "failed" };
   }
 }
 
@@ -1510,6 +1573,11 @@ export type PaymentsCheckoutResult =
   // (a double click, or the store offered a tier they have). Nothing was
   // charged.
   | { ok: false; code: "already_subscribed"; existingTier: string }
+  // 409 subscription_past_due: the player's Stripe subscription failed to
+  // renew and Stripe is still retrying it, so a second one would double-bill.
+  // The recovery is fixing the card in the billing portal, which admits a
+  // past_due subscription even though /users/@me does not return it.
+  | { ok: false; code: "subscription_past_due" }
   // 409 tier_change_unavailable_on_provider: a Steam subscriber tried to
   // change tier and Steam refused a second agreement while one is live, or
   // tier changes are switched off on that rail. `message` is the server's
@@ -1653,6 +1721,9 @@ export async function createPaymentsCheckout(
         }
         if (reason === "pending_provider_transaction" && provider !== null) {
           return { ok: false, code: "pending_provider_transaction", provider };
+        }
+        if (reason === "subscription_past_due") {
+          return { ok: false, code: "subscription_past_due" };
         }
         if (reason === "already_subscribed") {
           return {
@@ -1935,11 +2006,44 @@ export async function setLobbyListed(
   }
 }
 
+// POST /api/game/:id/queue on the game server — the host of a listed lobby
+// pays plutonium to put it in the public Special queue. The worker charges
+// through the API with the host's token. On failure, `error` is the server's
+// code when available ("insufficient_balance", "queue_payment_failed", ...).
+export async function queueLobby(
+  gameID: string,
+): Promise<{ ok: true } | { ok: false; error?: string }> {
+  try {
+    await ensureServerList();
+    const token = await getPlayToken();
+    const response = await fetch(
+      `${ClientEnv.gameHttpBase(gameID)}/${ClientEnv.gameWorkerPath(gameID)}/api/game/${gameID}/queue`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    if (response.ok) return { ok: true };
+    const body = await response.json().catch(() => null);
+    return { ok: false, error: body?.error };
+  } catch (e) {
+    console.error("queueLobby: request failed", e);
+    return { ok: false };
+  }
+}
+
 // POST /api/create_game on the game server — mints a fresh private lobby with
 // the caller as creator. Deliberately has no worker prefix and no id: the edge
 // (nginx in prod, the vite dev proxy locally) picks a worker, which mints a
-// self-owned id and returns it.
-export async function createLobby(): Promise<GameInfo> {
+// self-owned id and returns it, along with the play token the lobby was
+// created under. The host must join with that same token: a cookieless guest
+// (blocked third-party cookies, some iframes) is minted a new identity on each
+// JWT refresh, and a refresh landing between create and join leaves the host
+// in their own lobby as someone who is not its creator.
+export async function createLobby(): Promise<{
+  lobby: GameInfo;
+  creatorToken: string;
+}> {
   // A new game needs a server that takes new games on this build: ask the
   // API (multi-server v2), falling back to the page's own server. When the
   // list says nothing runs this build any more, creating against the page's
@@ -1989,7 +2093,7 @@ export async function createLobby(): Promise<GameInfo> {
     const data = await response.json();
     console.log("Success:", data);
 
-    return data as GameInfo;
+    return { lobby: data as GameInfo, creatorToken: token };
   } catch (error) {
     console.error("Error creating lobby:", error);
     throw error;

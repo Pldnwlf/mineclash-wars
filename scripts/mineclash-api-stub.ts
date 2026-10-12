@@ -19,7 +19,7 @@ import {
 import { createHash, randomUUID } from "node:crypto";
 import http from "node:http";
 import { pathToFileURL } from "node:url";
-import { uuidToBase64url } from "../src/core/Base64";
+import { uuidToBase64url } from "@openfront/shared/Base64";
 import {
   DEFAULT_RAKE_BPS,
   HeartbeatRequestSchema,

@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { GameRecord } from "../../src/core/Schemas";
+import { GameRecord } from "@openfront/shared/WireSchemas";
 import {
   cleanupArchive,
   FREE_RETENTION_MS,

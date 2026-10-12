@@ -1,13 +1,18 @@
+import {
+  PlayerType,
+  Relation,
+  UnitType,
+} from "@openfront/engine-api/game/GameTypes";
+import { renderNumber } from "@openfront/engine-lib/Format";
+import { EventBus } from "@openfront/shared/EventBus";
 import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { EventBus } from "../../../core/EventBus";
-import { PlayerType, Relation, UnitType } from "../../../core/game/Game";
-import { UserSettings } from "../../../core/game/UserSettings";
 import { Controller } from "../../Controller";
 import { Platform } from "../../Platform";
 import { GoToPlayerEvent } from "../../TransformHandler";
 import { UIState } from "../../UIState";
-import { renderNumber, textDirection, translateText } from "../../Utils";
+import { UserSettings } from "../../UserSettings";
+import { textDirection, translateText } from "../../Utils";
 import { GameView } from "../../view";
 import { PlayerView } from "../../view/PlayerView";
 import {
@@ -379,7 +384,7 @@ export class TutorialPanel extends LitElement implements Controller {
       mirvDisabled: this.game.config().isUnitDisabled(UnitType.MIRV),
       samDisabled: this.game.config().isUnitDisabled(UnitType.SAMLauncher),
       donateEnabled:
-        this.game.config().donateTroops() || this.game.config().donateGold(),
+        this.game.config().donateTroops() || this.game.config().gameConfig().donateGold,
     };
   }
 

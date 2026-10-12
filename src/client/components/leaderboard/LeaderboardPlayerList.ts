@@ -1,11 +1,12 @@
-import { html, LitElement, nothing, PropertyValues } from "lit";
-import { customElement, property, query, state } from "lit/decorators.js";
+import { RankedType } from "@openfront/engine-api/game/GameTypes";
 import {
   PlayerLeaderboardEntry,
   RankedLeaderboardEntry,
-} from "../../../core/ApiSchemas";
-import { RankedType } from "../../../core/game/Game";
+} from "@openfront/shared/ApiSchemas";
+import { html, LitElement, nothing, PropertyValues } from "lit";
+import { customElement, property, query, state } from "lit/decorators.js";
 import { fetchPlayerLeaderboard, getUserMe } from "../../Api";
+import { loadModal } from "../../LazyModals";
 import { translateText } from "../../Utils";
 import "../PlayerName";
 
@@ -21,6 +22,7 @@ const RANKED_TYPES = Object.values(RankedType);
 const emptyLadders = (): Record<RankedType, LadderState> => ({
   [RankedType.OneVOne]: { entries: [], userEntry: null, hasMore: true },
   [RankedType.TwoVTwo]: { entries: [], userEntry: null, hasMore: true },
+  [RankedType.FreeForAll]: { entries: [], userEntry: null, hasMore: true },
 });
 
 const toPlayerEntry = (
@@ -41,7 +43,8 @@ export class LeaderboardPlayerList extends LitElement {
   /**
    * Which ladder to display. Each ranked type is ranked independently — the
    * same player can hold a different elo and rank on each — but one request
-   * returns both, so the other ladder rides along and is kept for its own tab.
+   * returns all of them, so the other ladders ride along and are kept for
+   * their own tabs.
    */
   @property({ attribute: false }) rankedType: RankedType = RankedType.OneVOne;
 
@@ -187,7 +190,7 @@ export class LeaderboardPlayerList extends LitElement {
       this.scheduleStickyVisibilityCheck();
       this.schedulePlayerFillCheck();
     } catch (err) {
-      console.error("loadPlayerLeaderboard: request failed", err);
+      console.warn("loadPlayerLeaderboard: request failed", err);
       if (reset) {
         this.error = translateText("leaderboard_modal.error");
       } else {
@@ -210,11 +213,15 @@ export class LeaderboardPlayerList extends LitElement {
   // Same handoff as the clan views: the profile modal's back button reopens
   // the leaderboard (its loaded pages survive the close).
   private openProfile(publicId: string) {
-    document
-      .querySelector<
-        HTMLElement & { openFromLeaderboard(publicId: string): void }
-      >("player-profile-modal")
-      ?.openFromLeaderboard(publicId);
+    loadModal("player-profile-modal").then(
+      () =>
+        document
+          .querySelector<
+            HTMLElement & { openFromLeaderboard(publicId: string): void }
+          >("player-profile-modal")
+          ?.openFromLeaderboard(publicId),
+      (err) => console.error("player-profile-modal failed to load:", err),
+    );
   }
 
   // TODO: consider IntersectionObserver for better visibility detection?

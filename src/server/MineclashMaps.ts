@@ -1,4 +1,4 @@
-import { GameMapType } from "../core/game/Game";
+import { GameMapType } from "@openfront/engine-api/game/GameTypes";
 
 // mineclash rotation pool (#9): replaces OpenFront's per-map frequencies in
 // scheduled public games. Few players at launch ⇒ mostly small maps (the 20

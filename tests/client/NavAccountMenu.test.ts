@@ -31,9 +31,9 @@ vi.mock("../../src/client/Utils", () => ({
   showToast,
 }));
 
+import type { UserMeResponse } from "@openfront/shared/ApiSchemas";
 import { NavAccountMenu } from "../../src/client/components/NavAccountMenu";
 import { updateAccountNavButton } from "../../src/client/NavAccountButton";
-import type { UserMeResponse } from "../../src/core/ApiSchemas";
 
 function userMe(subscribed = false, publicId = "p"): UserMeResponse {
   return {
@@ -138,6 +138,16 @@ describe("nav-account-menu", () => {
     // item as soon as the subscription appears on the session.
     fireUserMe(userMe(true));
     await el.updateComplete;
+    expect(itemKeys()).toContain("subscription");
+  });
+
+  it("offers the subscription item to a past_due subscriber, to fix billing", async () => {
+    fireUserMe({
+      user: { email: "player@example.com" },
+      player: { publicId: "p", pastDueSubscription: { tier: "plutonium" } },
+    } as unknown as UserMeResponse);
+    await el.updateComplete;
+    await click(trigger());
     expect(itemKeys()).toContain("subscription");
   });
 

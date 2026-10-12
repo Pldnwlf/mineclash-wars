@@ -1,11 +1,11 @@
-import z from "zod";
+import { GameID, ID } from "@openfront/engine-api/Schemas";
+import { replacer } from "@openfront/shared/SharedUtil";
 import {
-  GameID,
   GameRecord,
   GameRecordSchema,
-  ID,
   PartialGameRecord,
-} from "../core/Schemas";
+} from "@openfront/shared/WireSchemas";
+import z from "zod";
 import { registeredSite } from "./ClusterCheckin";
 import { logger } from "./Logger";
 import { readMatchRecord, writeMatchRecord } from "./MineclashArchive";

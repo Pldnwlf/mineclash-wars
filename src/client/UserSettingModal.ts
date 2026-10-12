@@ -1,14 +1,7 @@
+import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import { html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { formatKeyForDisplay, translateText } from "../client/Utils";
-import type { MapLayer } from "../core/game/TerrainMapLoader";
-import {
-  AudioCategory,
-  getDefaultKeybinds,
-  GRAPHICS_KEY,
-  USER_SETTINGS_CHANGED_EVENT,
-  UserSettings,
-} from "../core/game/UserSettings";
 import "./components/baseComponents/setting/SettingKeybind";
 import { SettingKeybind } from "./components/baseComponents/setting/SettingKeybind";
 import "./components/baseComponents/setting/SettingNumber";
@@ -41,6 +34,14 @@ import { audioControls, playCue } from "./sound/CuePlayer";
 import type { CueCategory } from "./sound/Sounds";
 import { canHandOffToSteam } from "./SteamHandoff";
 import type { UIState } from "./UIState";
+import {
+  AudioCategory,
+  getDefaultKeybinds,
+  GRAPHICS_KEY,
+  keysMayBeShared,
+  USER_SETTINGS_CHANGED_EVENT,
+  UserSettings,
+} from "./UserSettings";
 
 /**
  * Logged with no payload, ever.
@@ -255,7 +256,7 @@ export class UserSettingModal extends BaseModal {
     }
 
     const values = Object.entries(activeKeybinds)
-      .filter(([k]) => k !== action)
+      .filter(([k]) => k !== action && !keysMayBeShared(action, k))
       .map(([, v]) => v);
 
     // Allow specific key pairs to share physical modifier keys without reporting conflict
@@ -422,6 +423,39 @@ export class UserSettingModal extends BaseModal {
       "👁️ Hidden Lobby IDs:",
       !this.userSettings.lobbyIdVisibility() ? "ON" : "OFF",
     );
+  }
+
+  private toggleLobbyStartAlerts(e: Event) {
+    const enabled = (e.target as HTMLInputElement).checked;
+    this.userSettings.setLobbyStartAlerts(enabled);
+
+    // A permission prompt must originate from a user gesture. Persist the
+    // choice regardless of the result: desktop notifications are optional,
+    // and the lobby-start chime still works when permission is denied.
+    if (
+      enabled &&
+      typeof Notification !== "undefined" &&
+      Notification.permission === "default"
+    ) {
+      try {
+        void Notification.requestPermission().catch((error) => {
+          console.warn(
+            "Failed to request game-start notification permission",
+            error,
+          );
+        });
+      } catch (error) {
+        console.warn(
+          "Failed to request game-start notification permission",
+          error,
+        );
+      }
+    }
+    this.requestUpdate();
+  }
+
+  private toggleReplayViewer(e: Event) {
+    this.userSettings.setReplayViewer((e.target as HTMLInputElement).checked);
   }
 
   private toggleSteamLobbyLinks() {
@@ -1528,6 +1562,36 @@ export class UserSettingModal extends BaseModal {
         @change=${this.handleKeybindChange}
       ></setting-keybind>
 
+      <setting-keybind
+        action="targetPlayer"
+        label=${translateText("user_setting.target_player")}
+        description=${translateText("user_setting.target_player_desc")}
+        defaultKey=${this.defaultKeybinds.targetPlayer}
+        .value=${this.getKeyValue("targetPlayer")}
+        .display=${this.getKeyChar("targetPlayer")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="emojiMenu"
+        label=${translateText("user_setting.emoji_menu")}
+        description=${translateText("user_setting.emoji_menu_desc")}
+        defaultKey=${this.defaultKeybinds.emojiMenu}
+        .value=${this.getKeyValue("emojiMenu")}
+        .display=${this.getKeyChar("emojiMenu")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="quickChat"
+        label=${translateText("user_setting.quick_chat")}
+        description=${translateText("user_setting.quick_chat_desc")}
+        defaultKey=${this.defaultKeybinds.quickChat}
+        .value=${this.getKeyValue("quickChat")}
+        .display=${this.getKeyChar("quickChat")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
       <h2
         class="text-blue-200 text-xl font-bold mt-8 mb-3 border-b border-white/10 pb-2"
       >
@@ -1716,6 +1780,24 @@ export class UserSettingModal extends BaseModal {
         id="lobby-id-visibility-toggle"
         .checked=${!this.userSettings.lobbyIdVisibility()}
         @change=${this.toggleLobbyIdVisibility}
+      ></setting-toggle>
+
+      <!-- 🔔 Lobby start alerts -->
+      <setting-toggle
+        label="${translateText("user_setting.lobby_start_alerts_label")}"
+        description="${translateText("user_setting.lobby_start_alerts_desc")}"
+        id="lobby-start-alerts-toggle"
+        .checked=${this.userSettings.lobbyStartAlerts()}
+        @change=${this.toggleLobbyStartAlerts}
+      ></setting-toggle>
+
+      <!-- 🎬 New replay viewer (opt-in while it's rolled out) -->
+      <setting-toggle
+        label="${translateText("user_setting.replay_viewer_label")}"
+        description="${translateText("user_setting.replay_viewer_desc")}"
+        id="replay-viewer-toggle"
+        .checked=${this.userSettings.replayViewer()}
+        @change=${this.toggleReplayViewer}
       ></setting-toggle>
 
       ${canHandOffToSteam()

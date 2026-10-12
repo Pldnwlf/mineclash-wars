@@ -8,7 +8,7 @@ import {
   getMessageCategory,
   MessageCategory,
   MessageType,
-} from "../../src/core/game/Game";
+} from "@openfront/engine-api/game/GameTypes";
 
 describe("event log filters", () => {
   it("shows everything by default", () => {

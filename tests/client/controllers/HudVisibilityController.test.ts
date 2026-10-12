@@ -5,8 +5,8 @@ import {
   ToggleHudEvent,
 } from "../../../src/client/InputHandler";
 import { HudVisibilityController } from "../../../src/client/mineclash/HudVisibilityController";
-import { EventBus } from "../../../src/core/EventBus";
-import { UserSettings } from "../../../src/core/game/UserSettings";
+import { EventBus } from "@openfront/shared/EventBus";
+import { UserSettings } from "../../../src/client/UserSettings";
 
 describe("HudVisibilityController", () => {
   let bus: EventBus;

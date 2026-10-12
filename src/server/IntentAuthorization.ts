@@ -1,5 +1,5 @@
-import { GameType } from "../core/game/Game";
-import { ClientID, Intent } from "../core/Schemas";
+import { GameType } from "@openfront/engine-api/game/GameTypes";
+import { ClientID, Intent } from "@openfront/engine-api/Schemas";
 import { hostCheatsEnabled } from "./ConfigPatch";
 
 export interface IntentActor {
@@ -21,6 +21,7 @@ export interface IntentOutcome {
 export interface IntentGameState {
   isPublic: boolean;
   isListed: boolean;
+  isQueued: boolean;
   hasStarted: boolean;
 }
 
@@ -117,6 +118,10 @@ export function authorizeIntent(
       }
       if (game.hasStarted) {
         return { status: 409, error: "game already started" };
+      }
+      // The public queue's countdown starts a queued lobby.
+      if (game.isQueued && !actor.isAdminBot) {
+        return { status: 409, error: "cannot start a queued lobby" };
       }
       return null;
 

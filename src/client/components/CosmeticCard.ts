@@ -1,6 +1,6 @@
+import { Subscription } from "@openfront/shared/CosmeticSchemas";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { Subscription } from "../../core/CosmeticSchemas";
 import { ResolvedCosmetic, translateCosmetic } from "../Cosmetics";
 import { isDesktopShell } from "../DesktopShell";
 import { translateText } from "../Utils";
@@ -388,6 +388,7 @@ export class CosmeticCard extends LitElement {
     } ${this.rarityHoverClass(rarity)}`;
     const priced = active.cosmetic as {
       artist?: string;
+      aiDisclosed?: boolean;
       priceHard?: number;
     } | null;
     const usdValue =
@@ -491,6 +492,7 @@ export class CosmeticCard extends LitElement {
         ${this.interactive && active.cosmetic !== null
           ? html`<cosmetic-info
                 .artist=${priced?.artist}
+                .aiDisclosed=${priced?.aiDisclosed}
                 .rarity=${rarity}
                 .colorPalette=${active.colorPalette?.name}
                 .showAdFree=${active.relationship === "purchasable" &&

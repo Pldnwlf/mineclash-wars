@@ -132,9 +132,9 @@ beforeEach(() => {
   );
 });
 
+import { RankedType } from "@openfront/engine-api/game/GameTypes";
 import "../../src/client/components/baseComponents/Modal";
 import { LeaderboardModal } from "../../src/client/LeaderboardModal";
-import { RankedType } from "../../src/core/game/Game";
 
 describe("LeaderboardModal", () => {
   let modal: LeaderboardModal;
@@ -554,6 +554,43 @@ describe("LeaderboardModal", () => {
       expect(twoVTwo.playerData[0].elo).toBe(1500);
       expect(twoVTwo.currentUserEntry?.playerId).toBe("player-2");
       expect(fetchMock.mock.calls.length).toBe(callCount);
+    });
+
+    it("shows the FFA ladder from the same request", async () => {
+      const fetchMock = global.fetch as ReturnType<typeof vi.fn>;
+      fetchMock.mockResolvedValueOnce(
+        jsonRes({
+          "1v1": [entry(1, "player-1", 1200)],
+          "2v2": [],
+          ffa: [entry(1, "player-4", 1300), entry(2, "player-1", 1250)],
+        }),
+      );
+
+      const playerList = getPlayerList()!;
+      await playerList.loadPlayerLeaderboard(true);
+      const callCount = fetchMock.mock.calls.length;
+      const ffa = await showLadder("playersFfa");
+
+      expect(ffa.rankedType).toBe(RankedType.FreeForAll);
+      expect(ffa.playerData.map((p) => p.playerId)).toEqual([
+        "player-4",
+        "player-1",
+      ]);
+      expect(fetchMock.mock.calls.length).toBe(callCount);
+    });
+
+    it("shows an empty FFA ladder when the API has none", async () => {
+      // An API deployed before ranked FFA omits the key.
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        jsonRes({ "1v1": [entry(1, "player-1", 1200)], "2v2": [] }),
+      );
+
+      const playerList = getPlayerList()!;
+      await playerList.loadPlayerLeaderboard(true);
+      const ffa = await showLadder("playersFfa");
+
+      expect(ffa.playerData).toEqual([]);
+      expect(modal.textContent).toContain("No ranked games on this ladder");
     });
 
     // The 2v2 board starts empty and has no backfill, so an empty ladder is a

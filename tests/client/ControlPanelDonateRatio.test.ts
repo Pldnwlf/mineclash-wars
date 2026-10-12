@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { EventBus } from "@openfront/shared/EventBus";
 import "../../src/client/hud/layers/ControlPanel";
 import type { ControlPanel } from "../../src/client/hud/layers/ControlPanel";
 import type { UIState } from "../../src/client/UIState";
 import type { GameView } from "../../src/client/view";
-import { EventBus } from "../../src/core/EventBus";
 
 // The donate sliders only show when the game allows that donation, and moving
 // one sets the share a quick donation to an ally sends.
@@ -26,7 +26,7 @@ describe("control-panel donate sliders", () => {
       myPlayer: () => null,
       config: () => ({
         donateTroops: () => donateTroops,
-        donateGold: () => donateGold,
+        gameConfig: () => ({ donateGold }),
       }),
     } as unknown as GameView;
     document.body.appendChild(panel);

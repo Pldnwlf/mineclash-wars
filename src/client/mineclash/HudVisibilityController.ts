@@ -1,8 +1,8 @@
 // mineclash #16: H hides the whole HUD (screenshots), H/Esc/eye button restores.
 // State is per match: init() always starts visible. Hiding is one body class +
 // one stylesheet, so layer visibility lives in this single place.
-import { EventBus } from "../../core/EventBus";
-import { UserSettings } from "../../core/game/UserSettings";
+import { EventBus } from "@openfront/shared/EventBus";
+import { UserSettings } from "../UserSettings";
 import { Controller } from "../Controller";
 import { CloseViewEvent, ToggleHudEvent } from "../InputHandler";
 

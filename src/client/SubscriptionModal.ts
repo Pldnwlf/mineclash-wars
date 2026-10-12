@@ -1,7 +1,7 @@
+import { UserMeResponse } from "@openfront/shared/ApiSchemas";
+import { Cosmetics } from "@openfront/shared/CosmeticSchemas";
 import { html, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { UserMeResponse } from "../core/ApiSchemas";
-import { Cosmetics } from "../core/CosmeticSchemas";
 import { renderFreePlayPerks } from "./components/FreePlayPerks";
 import "./components/SubscriptionPanel";
 import { fetchCosmetics } from "./Cosmetics";
@@ -22,7 +22,21 @@ export class SubscriptionModal extends ProfileMenuModal {
   @state() private cosmetics: Cosmetics | null = null;
 
   protected renderSignedIn(userMe: UserMeResponse): TemplateResult {
-    const sub = userMe.player.subscription;
+    const pastDue = userMe.player.pastDueSubscription;
+    // A past_due subscription renders on the same panel, which branches on
+    // its status to offer only the billing portal. The server sends it only
+    // for Stripe, and a renewal that failed has no period worth showing.
+    const sub =
+      userMe.player.subscription ??
+      (pastDue
+        ? {
+            tier: pastDue.tier,
+            status: "past_due",
+            currentPeriodEnd: null,
+            cancelAtPeriodEnd: false,
+            provider: "stripe",
+          }
+        : null);
     if (!sub) {
       return html`
         <div class="p-6">

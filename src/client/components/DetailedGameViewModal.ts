@@ -1,9 +1,9 @@
+import { GameMapType } from "@openfront/engine-api/game/GameTypes";
+import { UserMeResponse } from "@openfront/shared/ApiSchemas";
+import { PublicGameInfo, PublicGames } from "@openfront/shared/WireSchemas";
 import { html, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
-import { UserMeResponse } from "../../core/ApiSchemas";
-import { GameMapType } from "../../core/game/Game";
-import { PublicGameInfo, PublicGames } from "../../core/Schemas";
 import { getDesktopSessionState } from "../Auth";
 import { crazyGamesSDK } from "../CrazyGamesSDK";
 import {
@@ -16,9 +16,11 @@ import {
   reportMultiplayerRefusal,
   shouldBlockSocketSourcedAction,
 } from "../GameModeSelector";
-import { JoinLobbyModal } from "../JoinLobbyModal";
+import type { JoinLobbyModal } from "../JoinLobbyModal";
+import { whenModalLoaded } from "../LazyModals";
 import { PublicLobbySocket } from "../LobbySocket";
 import { JoinLobbyEvent } from "../Main";
+import { lastUserMeResponse } from "../UserMeBroadcast";
 import { UsernameInput } from "../UsernameInput";
 import {
   calculateServerTimeOffset,
@@ -186,6 +188,10 @@ export class DetailedGameViewModal extends BaseModal {
       this.onDesktopUpdateState,
     );
     document.addEventListener("userMeResponse", this.onUserMe);
+    // It loads on demand (see LazyModals), usually after Main's broadcast
+    // went out.
+    const last = lastUserMeResponse();
+    if (last !== null) this.applyUserMe(last.response);
     if (isDesktopShell()) {
       // Seed BOTH from their current values -- this modal mounts well after
       // the update bridge's synchronous replay has already been dispatched
@@ -218,7 +224,10 @@ export class DetailedGameViewModal extends BaseModal {
   };
 
   private onUserMe = (e: Event) => {
-    const me = (e as CustomEvent<UserMeResponse | false>).detail;
+    this.applyUserMe((e as CustomEvent<UserMeResponse | false>).detail);
+  };
+
+  private applyUserMe(me: UserMeResponse | false): void {
     this.viewerSignedIn = viewerIsSignedIn(me);
     this.viewerTrusted = viewerIsTrusted(me);
     // A CrazyGames sign-in surfaces as a userMeResponse without a linked
@@ -228,7 +237,7 @@ export class DetailedGameViewModal extends BaseModal {
         if (user !== null) this.viewerSignedIn = true;
       });
     }
-  };
+  }
 
   private onDesktopSessionState = (e: Event) => {
     this.desktopSessionState = (e as CustomEvent<DesktopSessionState>).detail;
@@ -451,11 +460,13 @@ export class DetailedGameViewModal extends BaseModal {
   private renderCard(lobby: PublicGameInfo) {
     const config = lobby.gameConfig;
     if (!config) return nothing;
+    // The host's Start countdown once armed, otherwise the listing deadline.
+    const startAt = lobby.startsAt ?? lobby.autoStartAt;
     return lobbyCard({
       lobby,
       subtitle: getGameModeLabel(config),
-      timeDisplay: this.timeDisplay(lobby),
-      timeDisplayUppercase: lobby.startsAt === undefined,
+      timeDisplay: this.timeDisplay(lobby, startAt),
+      timeDisplayUppercase: startAt === undefined,
       heightClass: "h-full",
       // Gated, not disabled: `disabled` also sets pointer-events-none and would
       // swallow the click that's supposed to make the update bar wiggle. join()
@@ -472,8 +483,11 @@ export class DetailedGameViewModal extends BaseModal {
     });
   }
 
-  private timeDisplay(lobby: PublicGameInfo): string {
-    if (lobby.startsAt === undefined) {
+  private timeDisplay(
+    lobby: PublicGameInfo,
+    startAt: number | undefined,
+  ): string {
+    if (startAt === undefined) {
       if (lobby.publicGameType === "hosted") {
         return translateText("public_lobby.waiting_for_players");
       }
@@ -487,7 +501,7 @@ export class DetailedGameViewModal extends BaseModal {
       return translateText("detailed_view.queue_position", { position });
     }
     const seconds = getSecondsUntilServerTimestamp(
-      lobby.startsAt,
+      startAt,
       this.serverTimeOffset,
     );
     return seconds > 0
@@ -827,9 +841,11 @@ export class DetailedGameViewModal extends BaseModal {
     // Hosted lobbies are private games a subscriber listed publicly: joining
     // one goes through the join modal's tracking flow, not the public path.
     if (lobby.publicGameType === "hosted") {
-      (
-        document.querySelector("join-lobby-modal") as JoinLobbyModal | null
-      )?.open({ lobbyId: lobby.gameID });
+      whenModalLoaded("join-lobby-modal", () =>
+        (
+          document.querySelector("join-lobby-modal") as JoinLobbyModal | null
+        )?.open({ lobbyId: lobby.gameID }),
+      );
       return;
     }
 

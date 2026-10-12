@@ -1,3 +1,26 @@
+import { ID, isValidGameID } from "@openfront/engine-api/Schemas";
+import { CloseCode, CloseReason } from "@openfront/shared/CloseCodes";
+import { GameEnv } from "@openfront/shared/configuration/Env";
+import { generateID, replacer } from "@openfront/shared/SharedUtil";
+import {
+  ClientMessage,
+  ClientPlatformSchema,
+  HOSTED_LOBBY_AUTO_START_MS,
+  LevelBadge,
+  MAX_HOSTED_LOBBIES,
+  MAX_HOSTED_LOBBY_PLAYERS,
+  MIN_HOSTED_LOBBY_AUTO_START_MS,
+  MIN_HOSTED_LOBBY_PLAYERS,
+  ServerErrorMessage,
+} from "@openfront/shared/WireSchemas";
+import {
+  CreateGameInputSchema,
+  isPrivateGameInput,
+} from "@openfront/shared/WorkerSchemas";
+import {
+  decodeClientMessage,
+  encodeServerMessage,
+} from "@openfront/shared/ZbinWire";
 import compression from "compression";
 import express, { NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
@@ -7,32 +30,17 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
-import { CloseCode, CloseReason } from "../core/CloseCodes";
-import { GameEnv } from "../core/configuration/Config";
-import { GameType } from "../core/game/Game";
-import {
-  ClientMessage,
-  ClientPlatformSchema,
-  HOSTED_LOBBY_AUTO_START_MS,
-  ID,
-  isValidGameID,
-  MAX_HOSTED_LOBBIES,
-  MAX_HOSTED_LOBBY_PLAYERS,
-  MIN_HOSTED_LOBBY_AUTO_START_MS,
-  ServerErrorMessage,
-} from "../core/Schemas";
-import { generateID, replacer } from "../core/Util";
-import { CreateGameInputSchema } from "../core/WorkerSchemas";
-import { decodeClientMessage, encodeServerMessage } from "../core/ZbinWire";
 import { registerAdminBotRoutes } from "./AdminBotRoutes";
 import { censorPlayer } from "./Censor";
 import { Client } from "./Client";
 import { gameApiCors } from "./GameApiCors";
 import { GameManager } from "./GameManager";
 import { registerGamePreviewRoute } from "./GamePreviewRoute";
-import type { GameServer } from "./GameServer";
+import { GamePhase, type GameServer } from "./GameServer";
 import { isSteamAuthenticated, planJoinVerify, verifyJoin } from "./JoinVerify";
-import { getUserMe, verifyClientToken } from "./jwt";
+import { getUserMe, userMeFailureClose, verifyClientToken } from "./jwt";
+import { levelBadgeForPlayer } from "./LevelBadge";
+import { payForLobbyQueue, queueListedLobby } from "./LobbyQueuePayment";
 import { logger } from "./Logger";
 import { resolveVerifiedJoin } from "./Privilege";
 
@@ -45,6 +53,7 @@ import {
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { PrivilegeRefresher } from "./PrivilegeRefresher";
 import { startRankedCheckinLoops } from "./RankedCheckin";
+import { rejoinOrClose } from "./Rejoin";
 import { ServerEnv } from "./ServerEnv";
 import { SingleplayerPresence } from "./SingleplayerPresence";
 import { applyStaticAssetCacheControl } from "./StaticAssetCache";
@@ -188,11 +197,14 @@ export async function startWorker() {
       return res.status(400).json({ error: z.prettifyError(parsed.error) });
     }
     const gc = parsed.data;
-    // Public games are scheduled by the master over IPC, never created here.
-    if (gc?.gameType === GameType.Public) {
+    // Only private games are created here. Public games are scheduled by the
+    // master over IPC, and singleplayer games run in the browser, never on a
+    // game server. An empty body ({}) parses to undefined and gets
+    // createGame's private default.
+    if (!isPrivateGameInput(gc)) {
       return res
         .status(400)
-        .json({ error: "Cannot create public games via this endpoint" });
+        .json({ error: "Only private games can be created via this endpoint" });
     }
 
     // Reuse-lobby flow: ?previous=<gameID> marks this creation as the successor
@@ -294,7 +306,7 @@ export async function startWorker() {
         maxPlayers: z
           .number()
           .int()
-          .min(2)
+          .min(MIN_HOSTED_LOBBY_PLAYERS)
           .max(MAX_HOSTED_LOBBY_PLAYERS)
           .optional(),
       })
@@ -384,6 +396,50 @@ export async function startWorker() {
       maxPlayers,
     });
     res.json({ listed });
+  });
+
+  // The host of a listed lobby pays (plutonium, charged by the API with the
+  // host's token) to put it in the public Special queue, right behind the
+  // lobby that's counting down.
+  app.post("/api/game/:id/queue", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(400).json({ error: "Authorization header required" });
+    }
+    const token = authHeader.substring("Bearer ".length);
+    const auth = await verifyClientToken(token);
+    if (auth.type !== "success") {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    const game = gm.game(req.params.id);
+    if (game === null) {
+      return res.status(404).json({ error: "Game not found" });
+    }
+    const outcome = await queueListedLobby(
+      {
+        isCreator: (id) => game.isCreator(id),
+        isPublic: () => game.isPublic(),
+        isListed: () => game.isListed(),
+        isQueued: () => game.isQueued(),
+        inLobby: () => game.phase() === GamePhase.Lobby && !game.hasStarted(),
+        startsAt: () => game.gameInfo().startsAt,
+        autoStartAt: () => game.autoStartAt(),
+        queueForPublic: () => game.queueForPublic(),
+      },
+      auth.persistentId,
+      // Dev has no payment backend; skip the charge so the feature is
+      // testable locally (same precedent as the listing subscription check).
+      ServerEnv.env() === GameEnv.Dev
+        ? async () => ({ type: "success" })
+        : () => payForLobbyQueue(token, game.id),
+    );
+    if (outcome.status === 502) {
+      log.warn("lobby queue payment failed", { gameID: game.id });
+    } else if (outcome.status === 200) {
+      log.info("lobby queued for public play", { gameID: game.id });
+    }
+    res.status(outcome.status).json(outcome.body);
   });
 
   // Singleplayer games run in the browser; the client beats here once a
@@ -551,18 +607,15 @@ export async function startWorker() {
             gameID: clientMsg.gameID,
             persistentID: persistentId,
           });
-          const wasFound = gm.rejoinClient(
+          rejoinOrClose(
+            gm,
+            log,
+            workerId,
             ws,
             persistentId,
             clientMsg.gameID,
             clientMsg.lastTurn,
           );
-          if (!wasFound) {
-            log.warn(
-              `game ${clientMsg.gameID} not found on worker ${workerId}`,
-            );
-            ws.close(CloseCode.GameNotFound, CloseReason.GameNotFound);
-          }
           return;
         }
 
@@ -683,6 +736,7 @@ export async function startWorker() {
         let friends: string[] = [];
         let ownedClanTags: string[] = [];
         let trusted = false;
+        let levelBadge: LevelBadge | undefined;
         let accountUsername:
           | {
               username?: string | null;
@@ -706,7 +760,8 @@ export async function startWorker() {
               persistentID: persistentId,
               gameID: clientMsg.gameID,
             });
-            ws.close(CloseCode.InternalError, CloseReason.AccountLookupFailed);
+            const { code, reason } = userMeFailureClose(result);
+            ws.close(code, reason);
             return;
           }
           flares = result.response.player.flares;
@@ -715,6 +770,9 @@ export async function startWorker() {
           ownedClanTags = result.response.player.clans?.map((c) => c.tag) ?? [];
           accountUsername = result.response.player;
           trusted = result.response.player.trustTier === "trusted";
+          // Display-only: the roster badge comes from this lookup alone, never
+          // from the join message. None when the player hides their level.
+          levelBadge = levelBadgeForPlayer(result.response.player);
 
           if (allowedFlares !== undefined) {
             const allowed =
@@ -799,6 +857,7 @@ export async function startWorker() {
           clientMsg.spectator === true,
           trusted,
           clientMsg.platform,
+          levelBadge,
         );
 
         const joinResult = gm.joinClient(client, clientMsg.gameID);
@@ -824,6 +883,15 @@ export async function startWorker() {
             workerId,
           });
           ws.close(CloseCode.Forbidden, CloseReason.NotTrusted);
+        } else if (joinResult === "redirected") {
+          // Normal, not a rejection code: the game already sent this client
+          // where to go, and Normal is the client's silent branch, so no
+          // dialog appears while it navigates.
+          log.info("client redirected to a pool sibling", {
+            gameID: clientMsg.gameID,
+            workerId,
+          });
+          ws.close(CloseCode.Normal, CloseReason.PoolRedirect);
         } else if (joinResult === "ended") {
           log.info(`client tried to join ended game ${clientMsg.gameID}`, {
             gameID: clientMsg.gameID,

@@ -4,8 +4,8 @@ import { createLocalJWKSet, jwtVerify } from "jose";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { createStub, uuidForName } from "../../scripts/mineclash-api-stub";
-import { UserMeResponseSchema } from "../../src/core/ApiSchemas";
-import { base64urlToUuid } from "../../src/core/Base64";
+import { UserMeResponseSchema } from "@openfront/shared/ApiSchemas";
+import { base64urlToUuid } from "@openfront/shared/Base64";
 import {
   HOLD_TTL_MS,
   MineclashApiClient,

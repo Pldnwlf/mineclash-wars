@@ -13,6 +13,7 @@ import {
   nextBootInterrupt,
   parseClaimPromptStore,
   runBootInterrupt,
+  steamGrantStringsReady,
   USERNAME_FORM_HASH,
   type BootInterrupt,
   type BootInterruptInputs,
@@ -827,6 +828,7 @@ describe("running the Steam grant notices", () => {
   const record = {
     periodEnd: "2026-10-15T00:00:00.000Z",
     tier: "warlord",
+    steam: true,
     welcomed: false,
     endedShown: false,
     seenAt: now,
@@ -946,5 +948,25 @@ describe("running the Steam grant notices", () => {
     }
     expect(calls.rewardsOpened).toBe(0);
     expect(claimStored).toEqual([]);
+  });
+});
+
+// The grant bodies are ICU messages with {tier} and {date}; probing them
+// without values made translateText log a format error on every boot.
+describe("steamGrantStringsReady", () => {
+  it("probes with the params the bodies take", () => {
+    const probed: Record<string, string>[] = [];
+    const ready = steamGrantStringsReady((key, params) => {
+      probed.push(params);
+      return `translated ${key}`;
+    });
+    expect(ready).toBe(true);
+    for (const params of probed) {
+      expect(params).toEqual({ tier: "", date: "" });
+    }
+  });
+
+  it("is not ready while a key echoes back", () => {
+    expect(steamGrantStringsReady((key) => key)).toBe(false);
   });
 });

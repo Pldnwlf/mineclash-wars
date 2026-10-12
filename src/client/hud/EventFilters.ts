@@ -3,7 +3,7 @@ import {
   getMessageCategory,
   MessageCategory,
   MessageType,
-} from "../../core/game/Game";
+} from "@openfront/engine-api/game/GameTypes";
 
 const STORAGE_KEY = "mineclash-eventFilters";
 

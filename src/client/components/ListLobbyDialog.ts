@@ -1,10 +1,11 @@
-import { html, LitElement, render as litRender } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
 import {
   HOSTED_LOBBY_AUTO_START_MS,
   MAX_HOSTED_LOBBY_PLAYERS,
   MIN_HOSTED_LOBBY_AUTO_START_MS,
-} from "../../core/Schemas";
+  MIN_HOSTED_LOBBY_PLAYERS,
+} from "@openfront/shared/WireSchemas";
+import { html, LitElement, render as litRender, PropertyValues } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
 import { translateText } from "../Utils";
 import "./FluentSlider";
 
@@ -26,11 +27,26 @@ const MAX_START_MINUTES = HOSTED_LOBBY_AUTO_START_MS / 60_000;
 export class ListLobbyDialog extends LitElement {
   // Players already seated; the cap must leave room for at least one more.
   @property({ type: Number }) currentPlayers = 1;
+  // The player limit the host already set, if any: the cap starts there
+  // instead of at the maximum, so listing doesn't quietly raise it.
+  @property({ attribute: false }) suggestedMaxPlayers: number | undefined;
 
   @state() private startMinutes = MAX_START_MINUTES;
   @state() private maxPlayers = MAX_HOSTED_LOBBY_PLAYERS;
 
   private portal: HTMLDivElement | null = null;
+
+  protected willUpdate(changed: PropertyValues<this>) {
+    if (
+      changed.has("suggestedMaxPlayers") &&
+      this.suggestedMaxPlayers !== undefined
+    ) {
+      this.maxPlayers = Math.min(
+        MAX_HOSTED_LOBBY_PLAYERS,
+        this.suggestedMaxPlayers,
+      );
+    }
+  }
 
   createRenderRoot() {
     return this;
@@ -61,7 +77,7 @@ export class ListLobbyDialog extends LitElement {
   private minPlayers(): number {
     return Math.min(
       MAX_HOSTED_LOBBY_PLAYERS,
-      Math.max(2, this.currentPlayers + 1),
+      Math.max(MIN_HOSTED_LOBBY_PLAYERS, this.currentPlayers + 1),
     );
   }
 
