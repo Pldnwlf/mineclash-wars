@@ -8,7 +8,7 @@ See [Contributors](https://github.com/openfrontio/OpenFrontIO/graphs/contributor
 ### FrontWars
 
 Look and parts of the HUD follow the open [FrontWars](https://github.com/silverleafsolutions/FrontWars) client
-(client code GPL v3, state 2025-09-29): control panel with donate sliders, build bar tiles, event log filters (`src/client/hud/EventFilters.ts`, filter bar in `EventsDisplay.ts`, after FrontWars' `EventsDisplay.ts` `eventsFilters`),
+(client code GPL v3, state 2025-09-29): control panel with donate sliders, build bar tiles, player info card (`PlayerInfoOverlay.ts`), event log filters (`src/client/hud/EventFilters.ts`, filter bar in `EventsDisplay.ts`, after FrontWars' `EventsDisplay.ts` `eventsFilters`),
 menu layout. GPL v3 code is combined here under AGPL-3.0. FrontWars' closed live client, name and logo are not used.
 
 ### Source

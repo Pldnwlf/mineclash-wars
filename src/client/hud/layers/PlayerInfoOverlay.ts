@@ -1,4 +1,4 @@
-import { html, LitElement, TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { assetUrl } from "../../../core/AssetUrls";
 import { EventBus } from "../../../core/EventBus";
@@ -10,17 +10,14 @@ import {
   UnitType,
 } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
-import { AllianceView } from "../../../core/game/GameUpdates";
 import { Controller } from "../../Controller";
 import {
   ContextMenuEvent,
   MouseMoveEvent,
   TouchEvent,
 } from "../../InputHandler";
-import { themeProvider } from "../../theme/ThemeProvider";
 import { TransformHandler } from "../../TransformHandler";
 import {
-  getTranslatedPlayerTeamLabel,
   renderDuration,
   renderNumber,
   renderTroops,
@@ -35,19 +32,10 @@ import {
 } from "../PlayerIcons";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
 import { CloseRadialMenuEvent } from "./RadialMenu";
-import "./RelationSmiley";
 import { SpawnBarVisibleEvent } from "./SpawnTimer";
-const soldierIconAquarius = assetUrl("images/SoldierIconAquarius.svg");
+
 const allianceIcon = assetUrl("images/AllianceIcon.svg");
 const traitorIcon = assetUrl("images/TraitorIcon.svg");
-const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
-const cityIcon = assetUrl("images/CityIconWhite.svg");
-const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
-const goldCoinIcon = assetUrl("images/GoldCoinIcon.svg");
-const missileSiloIcon = assetUrl("images/MissileSiloIconWhite.svg");
-const portIcon = assetUrl("images/PortIcon.svg");
-const samLauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
-const soldierIcon = assetUrl("images/SoldierIcon.svg");
 
 function euclideanDistWorld(
   coord: { x: number; y: number },
@@ -178,21 +166,19 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     this.requestUpdate();
   }
 
-  private getPlayerNameColor(isFriendly: boolean): string {
-    if (isFriendly) return "text-green-500";
-    return "text-white";
-  }
-
-  private getRelationSmiley(
+  // mineclash #12: FrontWars-style card (labelled rows), right under the timer box.
+  private relationText(
     player: PlayerView,
     myPlayer: PlayerView | null | undefined,
-  ): TemplateResult | string {
+  ): string {
+    if (myPlayer?.isAlliedWith(player)) {
+      return translateText("player_info_overlay.allied");
+    }
     if (!myPlayer || myPlayer === player || player.type() !== PlayerType.Nation)
-      return "";
-    const relation =
-      this.playerProfile?.relations[myPlayer.smallID()] ?? Relation.Neutral;
-    if (relation === Relation.Neutral) return "";
-    return html`<relation-smiley .relation=${relation}></relation-smiley>`;
+      return translateText("relation.neutral");
+    return this.getRelationName(
+      this.playerProfile?.relations[myPlayer.smallID()] ?? Relation.Neutral,
+    );
   }
 
   private getRelationName(relation: Relation): string {
@@ -210,402 +196,129 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     }
   }
 
-  private displayUnitCount(player: PlayerView, type: UnitType, icon: string) {
-    return !this.game.config().isUnitDisabled(type)
-      ? html`<div
-          class="flex items-center justify-center gap-0.5 lg:gap-1 p-0.5 lg:p-1 border rounded-md border-gray-500 text-[10px] lg:text-xs w-9 lg:w-12 h-6 lg:h-7"
-          translate="no"
-        >
-          <img
-            src=${icon}
-            class="w-3 h-3 lg:w-4 lg:h-4 object-contain shrink-0"
-          />
-          <span>${player.totalUnitLevels(type)}</span>
-        </div>`
-      : "";
+  private row(label: string, value: unknown, valueClass = "text-white") {
+    return html`<div class="flex justify-between gap-2" translate="no">
+      <span class="text-white/80">${label}:</span>
+      <span class="font-bold tabular-nums ${valueClass}">${value}</span>
+    </div>`;
   }
 
-  private allianceExpirationText(alliance: AllianceView) {
-    const { expiresAt } = alliance;
-    const remainingTicks = expiresAt - this.game.ticks();
-    let remainingSeconds = 0;
-    if (remainingTicks > 0) {
-      remainingSeconds = Math.max(0, Math.floor(remainingTicks / 10)); // 10 ticks per second
-    }
-    return renderDuration(remainingSeconds);
-  }
-
-  private renderPlayerNameIcons(icons: ReturnType<typeof getPlayerIcons>) {
-    if (icons.length === 0) {
-      return html``;
-    }
-
-    return html`<span class="flex items-center gap-1 shrink-0">
-      ${icons.map((icon) =>
-        icon.kind === EMOJI_ICON_KIND && icon.text
-          ? html`<span class="h-4 w-4 font-mono text-sm shrink-0" translate="no"
-              >${icon.text}</span
-            >`
-          : icon.kind === IMAGE_ICON_KIND && icon.src
-            ? html`<img src=${icon.src} alt="" class="w-4 h-4 shrink-0" />`
-            : html``,
-      )}
-    </span>`;
-  }
-
-  /**
-   * Returns a CSS font-size value for the player name that scales down when
-   * icon pressure + name length would overflow the available row width.
-   * Uses calc(var(--text-lg) * scale) so the result always respects the
-   * CSS variable; min is var(--text-lg)/2, max is var(--text-lg).
-   */
-  private getNameFontSize(params: {
-    nameLength: number;
-    iconCount: number;
-    hasFlag: boolean;
-    hasBetrayal: boolean;
-    hasAlliance: boolean;
-    typeAndTeamLen: number;
-  }): { fontSize: string; isAllianceWrapped: boolean } {
-    const {
-      nameLength,
-      iconCount,
-      hasFlag,
-      hasBetrayal,
-      hasAlliance,
-      typeAndTeamLen,
-    } = params;
-
-    // Approximate char-widths each element occupies at --text-lg.
-    const DESKTOP_PRESSURE = {
-      perIcon: 2.0,
-      icon: 0.5,
-      flag: 3.5,
-      betrayal: 4.2,
-      alliance: 6.7,
-      allianceWrapped: 3.9,
-    } as const;
-
-    const MOBILE_PRESSURE = {
-      perIcon: 2.2,
-      icon: 0.5,
-      flag: 4.2,
-      betrayal: 4.6,
-      alliance: 8.6,
-      allianceWrapped: 4.8,
-    } as const;
-
-    const width = window.innerWidth;
-    const isDesktop = width >= 1024;
-
-    const PRESSURE = isDesktop ? DESKTOP_PRESSURE : MOBILE_PRESSURE;
-
-    // Convert text-xs (12px) mono chars to name font mono chars:
-    // Desktop (text-lg = 18px): ratio is 12/18 = 0.666 + gap(8px/10.8px = 0.74)
-    // Mobile (text-sm = 14px): ratio is 12/14 = 0.857 + gap(4px/8.4px = 0.47)
-    const typeAndTeamPressure = isDesktop
-      ? typeAndTeamLen * (12 / 18) + 8 / 10.8
-      : typeAndTeamLen * (12 / 14) + 4 / 8.4;
-
-    const basePressure =
-      typeAndTeamPressure +
-      iconCount * PRESSURE.perIcon +
-      (iconCount ? PRESSURE.icon : 0) +
-      (hasFlag ? PRESSURE.flag : 0) +
-      (hasBetrayal ? PRESSURE.betrayal : 0);
-
-    let capacity: number;
-
-    if (width < 640) {
-      // Below 640px, overlay 100% viewport width.
-      // space grows dynamically with width
-      capacity = 28.1 + (Math.max(360, width) - 360) * 0.119;
-    } else if (width < 768) {
-      // 640px - 767px: sm:w-[500px], troop col w-28
-      // space = 376px / 8.4px = 44.8 chars.
-      capacity = 44.8;
-    } else if (width < 1024) {
-      // 768px - 1023px: sm:w-[500px],  troop col md:w-36
-      // space = 344px / 8.4px = 41.0 chars.
-      capacity = 41.0;
-    } else {
-      // >= 1024px: sm:w-[500px], font-size text-lg (18px, 10.8px/char).
-      // space = 336px / 10.8px = 31.1 chars.
-      capacity = 31.1;
-    }
-
-    let isAllianceWrapped = false;
-    let alliancePressure = hasAlliance ? PRESSURE.alliance : 0;
-    let scale = (capacity - (basePressure + alliancePressure)) / nameLength;
-
-    // If alliance active and font scale < 0.85
-    // word-wrap alliance (icon & duration) to reduce width.
-    if (hasAlliance && scale < 0.85) {
-      isAllianceWrapped = true;
-      alliancePressure = PRESSURE.allianceWrapped;
-      scale = (capacity - (basePressure + alliancePressure)) / nameLength;
-    }
-
-    const textSize = isDesktop ? "lg" : "sm";
-    const fontSize = `clamp(var(--text-${textSize}) * .65, var(--text-${textSize}) * ${scale.toFixed(3)}, var(--text-${textSize}))`;
-
-    return { fontSize, isAllianceWrapped };
+  private unitRow(player: PlayerView, type: UnitType, key: string) {
+    return this.game.config().isUnitDisabled(type)
+      ? ""
+      : this.row(
+          translateText(`player_info_overlay.${key}`),
+          player.totalUnitLevels(type),
+        );
   }
 
   private renderPlayerInfo(player: PlayerView) {
     const myPlayer = this.game.myPlayer();
-    const isFriendly = myPlayer?.isFriendly(player);
-    const isAllied = myPlayer?.isAlliedWith(player);
-    const traitorTicks = player.getTraitorRemainingTicks();
-    let allianceHtml: TemplateResult | null = null;
-    let betrayalHtml: TemplateResult | null = null;
-    const firstPlace = getFirstPlacePlayer(this.game);
-    const playerIcons = getPlayerIcons({ game: this.game, player, firstPlace });
-    const maxTroops = this.game.config().maxTroops(player);
+    const nameClass = myPlayer?.isFriendly(player)
+      ? "text-green-500"
+      : "text-white";
     const attackingTroops = player
       .outgoingAttacks()
-      .map((a) => a.troops)
-      .reduce((a, b) => a + b, 0);
-    const totalTroops = player.troops();
-
-    let playerType = "";
-    switch (player.type()) {
-      case PlayerType.Bot:
-        playerType = translateText("player_type.bot");
-        break;
-      case PlayerType.Nation:
-        playerType = translateText("player_type.nation");
-        break;
-      case PlayerType.Human:
-        playerType = translateText("player_type.player");
-        break;
-    }
-    const clanTag = this.game.teamClanTag(player.team());
-    const playerTeam = getTranslatedPlayerTeamLabel(player.team(), clanTag);
-
-    const typeLen = playerType.length;
-    const hasTeam = playerTeam !== "" && player.type() !== PlayerType.Bot;
-    const teamStr = clanTag ?? playerTeam;
-    const teamLen = hasTeam ? teamStr.length + 2 : 0; // +2 for brackets
-
-    // The column width is determined by the longest string in the flex-col
-    const typeAndTeamLen = Math.max(typeLen, teamLen);
-
-    const { fontSize, isAllianceWrapped } = this.getNameFontSize({
-      nameLength: player.displayName().length,
-      iconCount: playerIcons.length,
-      hasFlag: !!player.cosmetics.flag,
-      hasBetrayal: traitorTicks > 0,
-      hasAlliance: isAllied ?? false,
-      typeAndTeamLen,
+      .reduce((sum, a) => sum + a.troops, 0);
+    const typeKey = {
+      [PlayerType.Bot]: "bot",
+      [PlayerType.Nation]: "nation",
+      [PlayerType.Human]: "player",
+    }[player.type()];
+    const flag = player.cosmetics.flag;
+    const icons = getPlayerIcons({
+      game: this.game,
+      player,
+      firstPlace: getFirstPlacePlayer(this.game),
     });
+    const traitorTicks = player.getTraitorRemainingTicks();
+    const alliance = myPlayer?.alliances().find((a) => a.other === player.id());
 
-    if (isAllied) {
-      const alliance = myPlayer
-        ?.alliances()
-        .find((alliance) => alliance.other === player.id());
-      if (alliance !== undefined) {
-        allianceHtml = isAllianceWrapped
-          ? html`<div
-              class="${traitorTicks === 0
-                ? "ml-auto"
-                : ""} flex flex-col items-center gap-0 text-xs font-bold leading-none shrink-0"
-            >
-              <img
-                src=${allianceIcon}
-                width="14"
-                height="14"
-                class="shrink-0"
-              />
-              <span class="text-[10px] leading-tight"
-                >${this.allianceExpirationText(alliance)}</span
-              >
+    return html`
+      <div class="px-3 py-2 space-y-1 text-sm">
+        <div
+          class="flex items-center gap-1.5 font-bold text-base break-all ${nameClass}"
+        >
+          ${flag
+            ? html`<img
+                class="h-6 object-contain shrink-0"
+                src=${assetUrl(flag)}
+              />`
+            : ""}
+          <span>${player.displayName()}</span>
+        </div>
+        ${icons.length > 0 || traitorTicks > 0 || alliance
+          ? html`<div class="flex items-center gap-2 flex-wrap text-xs">
+              ${icons.map((icon) =>
+                icon.kind === EMOJI_ICON_KIND && icon.text
+                  ? html`<span class="font-mono text-sm" translate="no"
+                      >${icon.text}</span
+                    >`
+                  : icon.kind === IMAGE_ICON_KIND && icon.src
+                    ? html`<img src=${icon.src} alt="" class="w-4 h-4" />`
+                    : "",
+              )}
+              ${traitorTicks > 0
+                ? html`<span class="flex items-center gap-1 text-red-400"
+                    ><img
+                      src=${traitorIcon}
+                      alt=""
+                      class="w-4 h-4"
+                    />${renderDuration(Math.floor(traitorTicks / 10))}</span
+                  >`
+                : ""}
+              ${alliance
+                ? html`<span class="flex items-center gap-1 text-green-400"
+                    ><img
+                      src=${allianceIcon}
+                      alt=""
+                      class="w-4 h-4"
+                    />${renderDuration(
+                      Math.max(
+                        0,
+                        Math.floor(
+                          (alliance.expiresAt - this.game.ticks()) / 10,
+                        ),
+                      ),
+                    )}</span
+                  >`
+                : ""}
             </div>`
-          : html`<div
-              class="${traitorTicks === 0
-                ? "ml-auto"
-                : ""} flex items-center mr-0 gap-1 text-xs font-bold leading-tight shrink-0"
-            >
-              <img
-                src=${allianceIcon}
-                width="18"
-                height="18"
-                class="shrink-0"
-              />
-              <span>${this.allianceExpirationText(alliance)}</span>
-            </div>`;
-      }
-    }
-
-    if (traitorTicks > 0) {
-      betrayalHtml = html`<span class="flex ml-auto items-center shrink-0 "
-        ><img src=${traitorIcon} alt="" class="w-4 h-4 shrink-0" />
-        <span
-          class="text-sm text-red-900 
-          drop-shadow-[-.2px_-.2px_.8px_rgba(0,0,0,.7),.2px_.2px_.8px_rgba(0,0,0,.7)]"
-        >
-          ${renderDuration(Math.floor(traitorTicks / 10))} </span
-        ><span></span
-      ></span>`;
-    }
-
-    return html`
-      <div class="flex items-start gap-1 lg:gap-2 p-1 lg:p-1.5">
-        <!-- Left: Gold & Troop bar -->
-        <div class="flex flex-col gap-1 shrink-0 w-28 md:w-36">
-          <div class="flex items-center gap-1">
-            <div
-              class="flex items-center justify-center px-1 py-0.5 border rounded-md border-yellow-400 font-bold text-yellow-400 text-sm lg:gap-1"
-              translate="no"
-            >
-              <img src=${goldCoinIcon} width="13" height="13" />
-              <span class="px-0.5">${renderNumber(player.gold())}</span>
-            </div>
-            <div
-              class="flex flex-1 flex-col items-center justify-center text-xs font-bold ${attackingTroops >
-              0
-                ? "text-aquarius"
-                : "text-white/40"} drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]"
-              translate="no"
-            >
-              <span class="flex items-center gap-px leading-none text-xs"
-                ><img
-                  class="w-2.5 h-2.5 inline-block ${attackingTroops > 0
-                    ? ""
-                    : "brightness-0 invert opacity-40"}"
-                  src=${attackingTroops > 0 ? soldierIconAquarius : soldierIcon}
-                  alt=""
-                  aria-hidden="true"
-                />↑</span
-              >
-              <span class="tabular-nums leading-none text-sm mt-0.5"
-                >${renderTroops(attackingTroops)}</span
-              >
-            </div>
-          </div>
-          <div class="w-28 md:w-36" translate="no">
-            ${this.renderTroopBar(totalTroops, attackingTroops, maxTroops)}
-          </div>
-        </div>
-        <!-- Right: Player identity + Units below -->
+          : ""}
+        ${this.row(
+          translateText("player_info_overlay.type"),
+          translateText(`player_type.${typeKey}`),
+        )}
+        ${this.row(
+          translateText("player_info_overlay.relation"),
+          this.relationText(player, myPlayer),
+        )}
+        ${this.row(
+          translateText("player_info_overlay.troops"),
+          renderTroops(player.troops()),
+        )}
+        ${this.row(
+          translateText("player_info_overlay.attacking"),
+          renderTroops(attackingTroops),
+          attackingTroops > 0 ? "text-aquarius" : "text-white/60",
+        )}
         <div
-          class="flex flex-col justify-between self-stretch w-[100%] flex-grow-1"
-        >
-          <div
-            class="flex items-center gap-1 lg:gap-2 font-bold text-sm lg:text-lg ${this.getPlayerNameColor(
-              isFriendly ?? false,
-            )}"
-          >
-            ${player.cosmetics.flag
-              ? html`<img
-                  class="h-6 object-contain shrink-0"
-                  src=${assetUrl(player.cosmetics.flag!)}
-                />`
-              : html``}
-            <div class="shrink min-w-0">
-              <span
-                class="font-mono inline-block leading-[1.2] wrap-anywhere"
-                style="font-size: ${fontSize}"
-                >${player.displayName()}</span
-              >
-            </div>
-            ${this.getRelationSmiley(player, myPlayer)}
-            ${playerTeam !== "" && player.type() !== PlayerType.Bot
-              ? html`<div
-                  class="flex flex-col items-center leading-tight shrink-0"
-                >
-                  <span
-                    class="text-gray-400 text-xs font-mono font-normal whitespace-nowrap"
-                    >${playerType}</span
-                  >
-                  <span
-                    class="text-xs font-mono font-normal text-gray-400 whitespace-nowrap"
-                    >[<span
-                      style="color: ${themeProvider
-                        .current()
-                        .teamColor(player.team()!)
-                        .toHex()}"
-                      >${clanTag ?? playerTeam}</span
-                    >]</span
-                  >
-                </div>`
-              : html`<span
-                  class="text-gray-400 text-xs font-mono font-normal shrink-0 whitespace-nowrap"
-                  >${playerType}</span
-                >`}
-            ${this.renderPlayerNameIcons(playerIcons)} ${betrayalHtml ?? ""}
-            ${allianceHtml ?? ""}
-          </div>
-          <div class="flex gap-0.5 lg:gap-1 items-center mt-0.5">
-            ${this.displayUnitCount(player, UnitType.City, cityIcon)}
-            ${this.displayUnitCount(player, UnitType.Factory, factoryIcon)}
-            ${this.displayUnitCount(player, UnitType.Port, portIcon)}
-            ${this.displayUnitCount(
-              player,
-              UnitType.MissileSilo,
-              missileSiloIcon,
-            )}
-            ${this.displayUnitCount(
-              player,
-              UnitType.SAMLauncher,
-              samLauncherIcon,
-            )}
-            ${this.displayUnitCount(player, UnitType.Warship, warshipIcon)}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  private renderTroopBar(
-    totalTroops: number,
-    attackingTroops: number,
-    maxTroops: number,
-  ) {
-    const base = Math.max(maxTroops, 1);
-    const greenPercentRaw = (totalTroops / base) * 100;
-    const orangePercentRaw = (attackingTroops / base) * 100;
-
-    const greenPercent = Math.max(0, Math.min(100, greenPercentRaw));
-    const orangePercent = Math.max(
-      0,
-      Math.min(100 - greenPercent, orangePercentRaw),
-    );
-
-    return html`
-      <div
-        class="w-full h-5 lg:h-6 border border-gray-600 rounded-md bg-gray-900/60 overflow-hidden relative"
-      >
-        <div class="relative h-full">
-          <div
-            class="absolute inset-y-0 left-0 w-full origin-left bg-sky-700 transition-transform duration-200 ease-out"
-            style="transform: scaleX(${greenPercent / 100});"
-          ></div>
-          <div
-            class="absolute inset-y-0 left-0 w-full origin-left bg-malibu-blue transition-transform duration-200 ease-out"
-            style="transform: translateX(${greenPercent}%) scaleX(${orangePercent /
-            100});"
-          ></div>
-        </div>
-        <div
-          class="absolute inset-0 flex items-center justify-between px-1.5 text-sm font-bold leading-none pointer-events-none"
+          class="flex justify-between items-center rounded-md bg-yellow-400/15 px-2 py-1 text-yellow-400"
           translate="no"
         >
-          <span class="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]"
-            >${renderTroops(totalTroops)}</span
+          <span class="font-semibold"
+            >${translateText("player_info_overlay.gold")}:</span
           >
-          <span class="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]"
-            >${renderTroops(maxTroops)}</span
+          <span class="font-bold tabular-nums"
+            >${renderNumber(player.gold())}</span
           >
         </div>
-        <img
-          src=${soldierIcon}
-          alt=""
-          aria-hidden="true"
-          width="14"
-          height="14"
-          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 brightness-0 invert drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] pointer-events-none"
-        />
+        ${this.unitRow(player, UnitType.City, "cities")}
+        ${this.unitRow(player, UnitType.Factory, "factories")}
+        ${this.unitRow(player, UnitType.Port, "ports")}
+        ${this.unitRow(player, UnitType.MissileSilo, "silos")}
+        ${this.unitRow(player, UnitType.SAMLauncher, "sams")}
+        ${this.unitRow(player, UnitType.Warship, "warships")}
       </div>
     `;
   }
@@ -645,17 +358,18 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
 
     const containerClasses = this._isInfoVisible
       ? "opacity-100 visible"
-      : "opacity-0 invisible pointer-events-none";
+      : "opacity-0 invisible";
 
+    // Right edge, below the timer box (GameRightSidebar). pointer-events-none
+    // so it never blocks taps/clicks on the map, also on mobile.
     return html`
       <div
-        class="fixed top-0 left-0 right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-[1001]"
+        class="fixed top-14 right-0 z-[999] w-44 lg:w-56 pointer-events-none"
         style="margin-top: ${this.barOffset}px;"
-        @click=${() => this.hide()}
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
       >
         <div
-          class="bg-gray-800/92 backdrop-blur-sm shadow-xs min-[1200px]:rounded-lg sm:rounded-b-lg shadow-lg text-white text-lg lg:text-base w-full sm:w-[500px] overflow-hidden ${containerClasses}"
+          class="bg-gray-800/92 backdrop-blur-sm shadow-lg rounded-l-lg text-white overflow-hidden ${containerClasses}"
         >
           ${this.player ? this.renderPlayerInfo(this.player) : ""}
           ${this.unit ? this.renderUnitInfo(this.unit) : ""}
