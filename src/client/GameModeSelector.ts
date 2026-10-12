@@ -29,6 +29,8 @@ import type { JoinLobbyModal } from "./JoinLobbyModal";
 import { whenModalLoaded } from "./LazyModals";
 import { PublicLobbySocket } from "./LobbySocket";
 import { JoinLobbyEvent } from "./Main";
+import { Features } from "./mineclash/Features";
+import "./mineclash/menu/MineclashMenu";
 import {
   backendUnreachableConfirmed,
   isPinnedToAVersion,
@@ -647,6 +649,31 @@ export class GameModeSelector extends LitElement {
   }
 
   render() {
+    // mineclash #19: FrontWars-style menu; upstream layout stays for upstream tests.
+    if (!Features.upstreamMenu) {
+      return html`<mineclash-menu
+          .lobbies=${this.lobbies}
+          .serverTimeOffset=${this.serverTimeOffset}
+          .defaultLobbyTime=${this.defaultLobbyTime}
+          .disabled=${!this.inputValid}
+          .feedMessage=${this.offlineForLobbies()
+            ? this.renderLobbiesUnavailable()
+            : nothing}
+          .hostedCount=${this.hostedLobbyCount()}
+          .onJoin=${(lobby: PublicGameInfo) =>
+            this.validateAndJoin(lobby, true)}
+          .onSolo=${this.openSinglePlayerModal}
+          .onHost=${this.openHostLobby}
+          .onJoinList=${this.openJoinLobby}
+          .onTutorial=${this.startTutorial}
+        ></mineclash-menu>
+        ${this.showTrustRequired
+          ? trustRequiredDialog(
+              this.viewerSignedIn,
+              () => (this.showTrustRequired = false),
+            )
+          : nothing}`;
+    }
     const ffa = this.lobbies?.games?.["ffa"]?.[0];
     const teams = this.lobbies?.games?.["team"]?.[0];
     const special = this.lobbies?.games?.["special"]?.[0];
@@ -997,7 +1024,7 @@ export class GameModeSelector extends LitElement {
     });
   }
 
-  private validateAndJoin(lobby: PublicGameInfo) {
+  private validateAndJoin(lobby: PublicGameInfo, inline = false) {
     if (this.blockedFromLobbyJoin()) return;
     if (!this.validateUsername()) return;
     if (!canJoinTrustedLobby(lobby, this.viewerTrusted)) {
@@ -1011,6 +1038,7 @@ export class GameModeSelector extends LitElement {
           gameID: lobby.gameID,
           source: "public",
           publicLobbyInfo: lobby,
+          inline, // mineclash #19: wait on the menu, no join modal
         } as JoinLobbyEvent,
         bubbles: true,
         composed: true,

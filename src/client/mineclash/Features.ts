@@ -18,6 +18,8 @@
 const test = import.meta.env?.MODE === "test";
 
 export const Features = {
+  /** #19: upstream homepage layout (kept for upstream tests only). */
+  upstreamMenu: test,
   /** /cosmetics.json from the closed OpenFront API (store, skins, flares). */
   cosmetics: test,
   /** XP / levels / prestige (/progression/* + win-modal XP panel). */

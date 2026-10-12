@@ -1,0 +1,115 @@
+// mineclash #19: pure logic of the main menu (no DOM), tested in
+// tests/client/MineclashMenu.test.ts. Data interfaces for stake (#22/#23)
+// and "Player of the day" live here too, until their sources exist.
+import type {
+  PublicGameInfo,
+  PublicGames,
+} from "@openfront/shared/WireSchemas";
+
+// ---- join / glow toggle ----------------------------------------------------
+
+export type CardClick =
+  | { action: "join"; joined: string }
+  | { action: "leave"; joined: null };
+
+/** Click on a card: not in this lobby => join (also switches); in it => leave. */
+export function toggleJoin(joined: string | null, gameID: string): CardClick {
+  return joined === gameID
+    ? { action: "leave", joined: null }
+    : { action: "join", joined: gameID };
+}
+
+/** The joined lobby left the feed (started or cancelled) => no longer waiting. */
+export function syncJoined(
+  joined: string | null,
+  activeIDs: readonly string[],
+): string | null {
+  return joined !== null && activeIDs.includes(joined) ? joined : null;
+}
+
+/** Reaction to the document's join-lobby event (source public) / leave-lobby. */
+export function joinedFromEvent(
+  source: string | undefined,
+  gameID: string,
+): string | null {
+  return source === "public" ? gameID : null;
+}
+
+export const GLOW_CLASS =
+  "ring-4 ring-cyber-yellow shadow-[0_0_28px_var(--color-cyber-yellow)]";
+export const IDLE_CLASS =
+  "ring-1 ring-white/10 hover:ring-2 hover:ring-malibu-blue";
+
+export function glowClass(isJoined: boolean): string {
+  return isJoined ? GLOW_CLASS : IDLE_CLASS;
+}
+
+// ---- lobby selection -------------------------------------------------------
+
+/**
+ * The one lobby a rotation card shows. Free card = first scheduled public
+ * lobby of the existing playlist. Stake card: none until #23 delivers stake
+ * lobbies (then pick by a stake field here); the card shows "coming soon".
+ */
+export function pickFreeLobby(
+  games: PublicGames["games"] | undefined,
+): PublicGameInfo | null {
+  return games?.ffa?.[0] ?? games?.team?.[0] ?? games?.special?.[0] ?? null;
+}
+
+export function pickStakeLobby(
+  _games: PublicGames["games"] | undefined,
+): PublicGameInfo | null {
+  // mineclash #23: stake lobbies do not exist yet.
+  return null;
+}
+
+export function activeLobbyIDs(
+  games: PublicGames["games"] | undefined,
+): string[] {
+  return Object.values(games ?? {})
+    .flat()
+    .map((g) => g.gameID);
+}
+
+/** Remaining share of the countdown ring, 0..1. */
+export function ringFraction(remainingSec: number, totalSec: number): number {
+  if (totalSec <= 0) return 0;
+  return Math.min(1, Math.max(0, remainingSec / totalSec));
+}
+
+// ---- stake / rate (interface until #22/#23) --------------------------------
+
+export interface StakeInfo {
+  coins: number;
+}
+
+/** USD per coin, from the Sparbuch rate (daily). null = unknown (#22). */
+export async function fetchCoinRateUsd(): Promise<number | null> {
+  return null;
+}
+
+/** 100 coins at 1000 => "$100K". */
+export function formatUsd(coins: number, usdPerCoin: number | null): string {
+  if (usdPerCoin === null) return "";
+  const v = coins * usdPerCoin;
+  if (v >= 1e6) return `$${+(v / 1e6).toFixed(1)}M`;
+  if (v >= 1e3) return `$${+(v / 1e3).toFixed(1)}K`;
+  return `$${Math.round(v)}`;
+}
+
+// ---- player of the day (interface until stats exist) -----------------------
+
+export interface DayEntry {
+  name: string;
+  value: number;
+}
+export interface PlayerOfTheDay {
+  mostWins: DayEntry | null;
+  mostCoinsWon: DayEntry | null;
+}
+
+/** null = no data source yet; the component then shows the placeholder. */
+export async function fetchPlayerOfTheDay(): Promise<PlayerOfTheDay | null> {
+  return null;
+}
