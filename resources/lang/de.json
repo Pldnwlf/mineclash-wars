@@ -1427,7 +1427,7 @@
     "disconnect_title": "Verbindungsabbruch und Wiedereintritt",
     "fair_1": "Allianzen sind erlaubt, auch in Einsatz-Matches.",
     "fair_2": "Grobes Teaming über mehrere Runden ist verboten: dieselben Leute tun sich in jeder Runde zusammen und erspielen dauerhaft das Geld aller anderen.",
-    "fair_3": "Andere Spieler können dich melden. Sind dieselben Spieler in 3 von 5 gemeinsamen Einsatz-Matches verbündet und greifen sich nie an, bekommt der Admin einen automatischen Hinweis. Nur der Admin entscheidet.",
+    "fair_3": "Andere Spieler können dich melden. Admins bekommen zusätzlich automatische Hinweise auf auffällige Muster über mehrere Matches. Nur der Admin entscheidet.",
     "fair_4": "Folge bei bestätigtem Teaming: Der Gewinn wird den Gegnern zurückgebucht (nur soweit Guthaben da ist) und du wirst für eine Zeit für den Einsatz-Modus gesperrt. Du bekommst ein Popup mit der Begründung.",
     "fair_5": "Höchstens 2 Konten pro IP in einer Einsatz-Lobby. Geteilte IPs werden pro Einsatz-Match protokolliert und dienen Admins als Hinweis, nicht als Beweis.",
     "fair_title": "Fair Play und Melden",

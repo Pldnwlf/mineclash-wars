@@ -1532,7 +1532,7 @@
     "disconnect_title": "Disconnect and rejoin",
     "fair_1": "Alliances are allowed, also in stake matches.",
     "fair_2": "Rough teaming over several rounds is forbidden: the same people teaming up in every round and permanently taking the money of everyone else.",
-    "fair_3": "Other players can report you. An automatic hint reaches the admin when the same players are allied in 3 of 5 shared stake matches and never attack each other. Only the admin decides.",
+    "fair_3": "Other players can report you. Admins also get automatic hints about suspicious patterns across matches. Only the admin decides.",
     "fair_4": "Consequence of confirmed teaming: the winnings are booked back to the opponents (only as far as the balance reaches) and you are blocked from stake mode for a while. You get a pop-up explaining why.",
     "fair_5": "At most 2 accounts per IP per stake lobby. Shared IPs are logged per stake match and serve as a hint for admins, not as proof.",
     "fair_title": "Fair play and reporting",
