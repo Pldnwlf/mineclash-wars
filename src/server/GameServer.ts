@@ -134,6 +134,7 @@ const KICK_REASON_LOBBY_CREATOR = "kick_reason.lobby_creator";
 const KICK_REASON_ADMIN = "kick_reason.admin";
 const KICK_REASON_HOST_LEFT = "kick_reason.host_left";
 const KICK_REASON_MATCH_CANCELLED = "kick_reason.match_cancelled";
+const KICK_REASON_SERVER_UPDATE = "kick_reason.server_update";
 
 export interface GameServerOptions {
   id: string;
@@ -935,6 +936,22 @@ export class GameServer {
     // phase() reports Finished once ended, so GameManager's next tick prunes.
     this.ended = true;
     return true;
+  }
+
+  // mineclash #41: deploy drain. Closes an unstarted lobby, or aborts a match
+  // that outlived the drain cap. phase() reports Finished once ended, so
+  // GameManager's next tick prunes it.
+  // mineclash #22/#25: an aborted match must refund every stake (no rake);
+  // hook in here once the wallet settle exists.
+  public abortForDrain(): void {
+    this.log.info("aborting game for server update", {
+      gameID: this.id,
+      started: this.hasStarted(),
+    });
+    for (const c of [...this.clients.active()]) {
+      this.kickClient(c.clientID, KICK_REASON_SERVER_UPDATE);
+    }
+    this.ended = true;
   }
 
   // Nobody was connected when the delayed start came due. An empty roster at

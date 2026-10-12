@@ -92,6 +92,10 @@ export async function startWorker() {
     workerId,
   });
   const gm = new GameManager(log, telemetry, buildHash);
+  // mineclash #41: only the master drains; under a process-group SIGTERM the
+  // workers must outlive it (they exit when the master's IPC channel closes).
+  process.on("SIGTERM", () => {});
+  process.on("SIGUSR2", () => {});
   server.on("close", () => telemetry.stop());
 
   // Initialize lobby service (handles WebSocket upgrade routing)
@@ -176,6 +180,10 @@ export async function startWorker() {
   // and returns it, so callers don't need to know the sharding. nginx (and the
   // vite dev proxy) randomly route here to spread new games across workers.
   app.post("/api/create_game", async (req, res) => {
+    // mineclash #41: deploy drain, no new lobbies.
+    if (gm.isDraining()) {
+      return res.status(503).json({ error: "server_draining" });
+    }
     // Identify the creator from their token. Never accept persistentID directly.
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) {

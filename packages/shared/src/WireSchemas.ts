@@ -313,6 +313,9 @@ export const PublicLobbyFullSchema = z.object({
   // because the pinned server reports its own commit and a same-commit
   // blue/green flip keeps them equal. Absent means active.
   active: z.boolean().optional(),
+  // mineclash #41: true while the server drains for a deploy. Menu shows
+  // "update soon"; unlike active:false no reload is wanted (same server).
+  draining: z.boolean().optional(),
 });
 
 export const PublicLobbyCountsSchema = z.object({

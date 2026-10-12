@@ -327,8 +327,12 @@ export function joinLobby(
             composed: true,
           }),
         );
-      } else if (message.error === "kick_reason.host_left") {
-        showInGameAlert(translateText("kick_reason.host_left")).then(() => {
+      } else if (
+        message.error === "kick_reason.host_left" ||
+        // mineclash #41: lobby closed / match aborted for a deploy
+        message.error === "kick_reason.server_update"
+      ) {
+        showInGameAlert(translateText(message.error)).then(() => {
           document.dispatchEvent(
             new CustomEvent("leave-lobby", {
               detail: { lobby: lobbyConfig.gameID, cause: "host-left" },

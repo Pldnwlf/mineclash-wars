@@ -60,6 +60,8 @@ export class MasterLobbyService {
   // waiting for its first API answer is neither, so until setActive is
   // called the broadcast says active while scheduling stays off.
   private stateKnown: boolean;
+  // mineclash #41: deploy drain, see startDrain().
+  private drainStartedAt: number | null = null;
 
   // Two modes (infra docs/lobby-coordinator.md, "The master: two modes"):
   //
@@ -152,6 +154,26 @@ export class MasterLobbyService {
     return total;
   }
 
+  /**
+   * mineclash #41: deploy drain. No new lobbies (rotation, coordinator,
+   * custom), workers close unstarted lobbies and abort matches past
+   * DRAIN_MAX_MATCH_MINUTES (see GameManager.startDrain). Idempotent; there
+   * is no way back, the process exits once the matches are done.
+   */
+  startDrain() {
+    if (this.drainStartedAt !== null) return;
+    this.drainStartedAt = Date.now();
+    this.log.info("draining: no new lobbies, waiting for running matches");
+  }
+
+  isDraining(): boolean {
+    return this.drainStartedAt !== null;
+  }
+
+  drainStartedAtMs(): number | null {
+    return this.drainStartedAt;
+  }
+
   isHealthy(): boolean {
     // We consider the lobby service healthy if at least half of the workers are ready.
     // This allows for some leeway if a worker crashes.
@@ -194,7 +216,7 @@ export class MasterLobbyService {
   // recentMaps (what the site just played) is not yet fed to the playlist —
   // its no-consecutive-repeat rule stays per server for now.
   private async handleCoordinatorCreate(msg: CoordinatorCreateGame) {
-    if (!this.active || !this.started) {
+    if (!this.active || !this.started || this.isDraining()) {
       this.log.info(
         `refusing coordinator createGame (${msg.publicGameType}): ${
           this.active ? "workers not ready" : "deployment inactive"
@@ -415,6 +437,7 @@ export class MasterLobbyService {
       },
       delistGameIDs: delist.length > 0 ? delist : undefined,
       active: this.active || !this.stateKnown,
+      draining: this.isDraining() ? true : undefined,
     } satisfies MasterLobbiesBroadcast;
     for (const [workerId, worker] of this.workers.entries()) {
       worker.send(msg, (e) => {
@@ -433,6 +456,8 @@ export class MasterLobbyService {
     // Coordinated: the site's queue depth and countdowns are the
     // coordinator's; adding our own here would double-schedule.
     if (this.isCoordinated()) return;
+    // mineclash #41: nothing new, and no countdown for lobbies being closed.
+    if (this.isDraining()) return;
 
     const lobbiesByType = this.getAllLobbies().games;
 

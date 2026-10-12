@@ -22,6 +22,11 @@ import {
 import { logger } from "./Logger";
 import { MapPlaylist } from "./MapPlaylist";
 import { MasterLobbyService } from "./MasterLobbyService";
+import {
+  drainStatus,
+  installDrain,
+  registerDrainRoutes,
+} from "./mineclash/MineclashDrain";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { startPolling } from "./PollingLoop";
 import { renderAppShell } from "./RenderHtml";
@@ -166,6 +171,7 @@ export async function startMaster() {
   // mistyped letter must not mint lobbies under a letter routed elsewhere.
   const registers = checkinBody(0) !== null;
   lobbyService = new MasterLobbyService(playlist, log, registers);
+  installDrain(lobbyService, log); // mineclash #41
 
   const INSTANCE_ID =
     ServerEnv.env() === GameEnv.Dev
@@ -275,14 +281,21 @@ export async function startMaster() {
   }
 }
 
+registerDrainRoutes(app, () => lobbyService); // mineclash #41
+
 app.get("/api/health", (_req, res) => {
   const ready = lobbyService?.isHealthy() ?? false;
   // instanceId is diagnostics: it tells the machines behind an apex apart.
   const instanceId = ServerEnv.instanceId();
   if (ready) {
-    res.json({ status: "ok", instanceId });
+    // mineclash #41: draining/runningMatches/pendingSettles for deploy + monitoring
+    res.json({ status: "ok", instanceId, ...drainStatus(lobbyService) });
   } else {
-    res.status(503).json({ status: "unavailable", instanceId });
+    res.status(503).json({
+      status: "unavailable",
+      instanceId,
+      ...drainStatus(lobbyService),
+    });
   }
 });
 
