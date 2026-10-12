@@ -35,3 +35,16 @@ describe("create_game game type", () => {
     expect(isPrivateGameInput(parsed)).toBe(true);
   });
 });
+
+// mineclash #22: Regeln und Einsatz setzt nur der Server, nie der Client.
+describe("create_game strips server-only mineclash fields", () => {
+  it("drops mineclashStake and mineclashRules from the client body", () => {
+    const parsed = CreateGameInputSchema.parse({
+      ...testGameConfig({ gameType: GameType.Private }),
+      mineclashStake: { coins: 1000 },
+      mineclashRules: { endMinutes: 25 },
+    });
+    expect(parsed).not.toHaveProperty("mineclashStake");
+    expect(parsed).not.toHaveProperty("mineclashRules");
+  });
+});

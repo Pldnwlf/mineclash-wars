@@ -76,8 +76,11 @@ import {
   IntentOutcome,
 } from "./IntentAuthorization";
 import { ListingState } from "./ListingState";
+import { logger } from "./Logger";
 import { identityFor, MatchTelemetryRecorder } from "./MatchTelemetryRecorder";
 import { ReportRequest } from "./mineclash/MineclashApi";
+import { getWallet, handleMineclashResult } from "./mineclash/MineclashWallet";
+import { alertAuszahlung } from "./MineclashAlerts";
 import { submitReport, toUuid } from "./MineclashReports";
 import {
   mineclashResult,
@@ -196,7 +199,19 @@ export function defaultGameServerDeps(): GameServerDeps {
   return {
     archive: (record) => archive(finalizeGameRecord(record)),
     replayWinner: replayWinnerInChild,
-    onMineclashResult: () => {},
+    // mineclash #22/#42: Auszahlung (nur mit Einsatz + MINECLASH_API_URL)
+    onMineclashResult: (id, result, ctx) => {
+      void handleMineclashResult(
+        getWallet(),
+        id,
+        result,
+        ctx.config,
+        ctx.persistentIdOf,
+      ).catch((e) => {
+        logger.error(`mineclash settle failed to persist: ${e}`);
+        void alertAuszahlung("settle nicht gespeichert");
+      });
+    },
     // mineclash #4: no custom tribes without the OpenFront API.
     fetchTribes: (players) =>
       ServerEnv.openfrontApi()
@@ -2115,7 +2130,10 @@ export class GameServer {
     this.verified = true;
     this.log.info("mineclash result", { gameID: this.id, result });
     try {
-      this.deps.onMineclashResult(this.id, result);
+      this.deps.onMineclashResult(this.id, result, {
+        config: this.gameConfig,
+        persistentIdOf: (clientId) => this.clients.get(clientId)?.persistentID,
+      });
     } catch (error) {
       this.log.error(`mineclash result handler failed: ${error}`, {
         gameID: this.id,

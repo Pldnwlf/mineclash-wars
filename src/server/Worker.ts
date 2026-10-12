@@ -43,6 +43,7 @@ import { levelBadgeForPlayer } from "./LevelBadge";
 import { payForLobbyQueue, queueListedLobby } from "./LobbyQueuePayment";
 import { logger } from "./Logger";
 import { isGuestClaims, mineclashIdentity } from "./mineclash/Identity";
+import { getWallet } from "./mineclash/MineclashWallet";
 import { resolveVerifiedJoin } from "./Privilege";
 
 import { MapPlaylist } from "./MapPlaylist";
@@ -95,6 +96,7 @@ export async function startWorker() {
     workerId,
   });
   const gm = new GameManager(log, telemetry, buildHash);
+  getWallet()?.startWorker(); // mineclash #22: Heartbeat der Matches dieses Workers
   // mineclash #41: only the master drains; under a process-group SIGTERM the
   // workers must outlive it (they exit when the master's IPC channel closes).
   process.on("SIGTERM", () => {});

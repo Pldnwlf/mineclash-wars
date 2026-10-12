@@ -27,6 +27,7 @@ import {
   installDrain,
   registerDrainRoutes,
 } from "./mineclash/MineclashDrain";
+import { getWallet } from "./mineclash/MineclashWallet";
 import { startKumaPush } from "./MineclashAlerts";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { startPolling } from "./PollingLoop";
@@ -211,6 +212,13 @@ export async function startMaster() {
 
   // mineclash #43: Kuma-Lebenszeichen (nur mit env)
   startKumaPush(() => lobbyService.isHealthy());
+
+  // mineclash #22/#42: serverStart (Neustart-Freigabe, offene Settles
+  // ausgenommen) im Hintergrund mit Retry. Blockiert nichts: Gratis-Spiel laeuft,
+  // wallet.hold lehnt ab (wallet_not_ready), bis es geklappt hat.
+  void getWallet()
+    ?.start()
+    .catch((e) => log.error(`wallet start failed: ${e}`));
 
   // Fork workers
   for (let i = 0; i < ServerEnv.numWorkers(); i++) {

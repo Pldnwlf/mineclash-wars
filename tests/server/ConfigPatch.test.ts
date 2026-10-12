@@ -152,3 +152,15 @@ describe("hostCheatsEnabled", () => {
     expect(hostCheatsEnabled(block)).toBe(true);
   });
 });
+
+describe("mineclash #22: server-only fields", () => {
+  it("update_game_config never takes mineclashStake or mineclashRules", () => {
+    const target = testGameConfig();
+    applyGameConfigPatch(target, {
+      mineclashStake: { coins: 1000 },
+      mineclashRules: { endMinutes: 25 },
+    });
+    expect(target.mineclashStake).toBeUndefined();
+    expect(target.mineclashRules).toBeUndefined();
+  });
+});
