@@ -18,7 +18,7 @@ Look & Feel nach FrontWars (Stil nachgebaut, alter offener FrontWars-Client als 
 - Eingebunden als **iframe-Tab `/play`** auf mineclash.de mit Vollbild-Knopf, Spiel läuft auf `play.mineclash.de` (#32).
 - Menü wie FrontWars: **zwei Rotations-Karten (Einsatz | Gratis)** mit je einer aktiven Lobby + Custom-Lobby-Liste (#19, #23).
   Custom-Lobbys: Start per Host-Knopf, Gratis-Runden offen für alle inkl. Gäste (Einsatz: <2 Menschen ⇒ zurück), Host stellt alle Optionen wie in FrontWars ein (Bots, Nationen, Startgold,
-  Multiplikator, Einheiten aus, Spenden, Team-Modus …). Handy-Ansicht im Hinterkopf, jetzt keine Priorität.
+  Multiplikator, Einheiten aus, Spenden, Team-Modus …). Host kann die Host-Rolle übergeben; geht er ohne Übergabe ⇒ Lobby zu, Einsätze frei (#23). Handy-Ansicht im Hinterkopf, jetzt keine Priorität.
 - **Team-Modi wählen nur Hosts von Custom-Lobbys.** In der Rotation teilt der Server Teams **zufällig** zu
   (Clan-Tags und Freundesgruppen zählen dort nicht) (#9, #23).
 - **Spenden:** in der Rotation aus, in Custom-Lobbys schaltet der Host (#9, #23).
@@ -45,6 +45,8 @@ Look & Feel nach FrontWars (Stil nachgebaut, alter offener FrontWars-Client als 
   Musik von NCS – Soundtrack wird später ausgesucht, bis dahin ohne Musik (#37).
 - Rotation: 20 kleine, meistgespielte OpenFront-Karten (≤ 45 Spieler) + 4 mit ~50 Spielern (#9, `src/server/MineclashMaps.ts`).
 - Admin-Panel bekommt eine eigene **Statistik-Seite** zum Spiel (Matches, Einsätze, Spieler, Zeiten, …) (#38).
+- **Gratis-Rotation = gleiche Regeln wie Einsatz-Rotation**; **Humans vs Nations nur ohne Einsatz**; Rotations-Timer 20–90 s je nach Max. Spielern; im Match steht immer der **MC-Name** (#9, #21, #23, 2026-10-12).
+- Deploy per **Drain** (laufende Matches spielen fertig, #41); Auszahlung überlebt Wallet-Ausfall/Neustart (#42); Alarme als Ticket an die IT über alert-bridge + Kuma (#43). Keine Test-Umgebung: Beta direkt live mit Test-Konten (#33).
 - Alle Entscheide (2026-09-24/25) stehen im Abschnitt „Entscheide“ der Issues. Das Konzept-Doc ist in Teilen überholt
   (Allianzen aus, Stufen 10/100/1000, Top-3-Verteilung) – es gelten die Issues.
 
@@ -61,16 +63,20 @@ mineflayer#27 JWT ───┴─► #21 Login ──► #22 Wallet ──► #2
 #6 Hosting ───┐                                                             │
 #9 Siegregeln ┼─► #24 Gewinner serverseitig (Pflicht vor Geld!) ────────────┤
 #29 Replays ──┘                                                             │
+#42 Auszahlung ausfallsicher ────────────────────────────────────────────────┤
 #36 Reconnect-Test ─────────────────────────────────────────────────────────┘
 
 mineflayer#28 Wallet-API ──► #22 Wallet
+#44 lokaler API-Stub ──► Entwicklung von #21–#23 ohne Warten auf mineflayer
 
 #3 proprietary raus ──┐
-#31 Quellcode-Link ───┴─► erster öffentlicher Deploy (#6, Branch release)
+#31 Quellcode-Link ───┤
+#41 Drain-Deploy ─────┤
+#43 Alarme ───────────┴─► erster öffentlicher Deploy (#6, Branch release)
 
 #29 Replays ──► #28 Reports ──► #30 Admin + #38 Statistik ──► #31 Regeln ──► #35 Tutorial ──► #33 Beta
 ```
-Parallel dazu: HUD (#12–#18), Menü/Lobby (#19, #20), Branding/Assets (#3, #7).
+Parallel dazu: HUD (#12–#18), Menü/Lobby (#19, #20, #39 Ergebnis-Screen, #40 Match-Historie), Branding/Assets (#3, #7).
 
 🔴 Code-Abgleich 2026-09-24 (Details im Abschnitt „Code-Abgleich“ der Issues): Siegschwelle ist 80 %, im FFA gewinnt
 immer genau ein Spieler – auch eine KI (#9, #25); nach einem Disconnect entscheidet der Übriggebliebene den Sieger-Vote
@@ -79,11 +85,11 @@ allein – egal, wer das Match wirklich gewonnen hat (#24); `/users/@me` + EdDSA
 ## Phasen
 | Phase | Inhalt | Issues |
 |---|---|---|
-| 0 Fundament | Repo, Upstream-Sync, proprietäre Assets, eigene API, Client entschlacken, Hosting, Branding, Musik (NCS) | #1–#7, #37 |
+| 0 Fundament | Repo, Upstream-Sync, proprietäre Assets, eigene API, Client entschlacken, Hosting, Branding, Musik (NCS), Drain-Deploy, Alarme, API-Stub | #1–#7, #37, #41, #43, #44 |
 | 1 Gameplay | ✅ Handel/Züge minimaler Zufall, Regelwerk Einsatz-Matches | #8, #9 |
 | 2 HUD | ✅ Control-Panel, ✅ Baubalken, Infokarte, Event-Log, Rangliste, Radialmenü, Hide UI, Design-Tokens, Mobil | #10–#18 |
-| 3 Menü & Lobby | Hauptmenü FrontWars-Aufbau, Lobby-Ansicht | #19, #20 |
-| 4 Konten & Einsatz | Login, Wallet, Einsatz-Lobbys, verbindlicher Gewinner, Auszahlung (Schutz #26: entschieden, zu) | #21–#26 |
+| 3 Menü & Lobby | Hauptmenü FrontWars-Aufbau, Lobby-Ansicht, Ergebnis-Screen, Match-Historie | #19, #20, #39, #40 |
+| 4 Konten & Einsatz | Login, Wallet, Einsatz-Lobbys, verbindlicher Gewinner, Auszahlung + Ausfallsicherheit (Schutz #26: entschieden, zu) | #21–#26, #42 |
 | 5 Fairness | Anti-Teaming-Konzept, Reports, Replays, Admin, Statistik-Seite, Tab-Wechsel/Login-Ablauf testen | #27–#30, #36, #38 |
 | 6 Launch | Regeln/AGPL-Link, Einbindung mineclash.de, Lasttest + Beta, Tutorial ergänzen | #31–#33, #35 |
 
