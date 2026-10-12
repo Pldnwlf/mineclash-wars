@@ -136,6 +136,42 @@ describe("mineclash win rules", () => {
     expect(wins).toEqual([["player", "h1"]]);
   });
 
+  it("custom (overtime off, no length): bar stays 80, no time end", async () => {
+    const { game, players, give, wins, at } = await make(
+      [
+        ["h1", H],
+        ["h2", H],
+      ],
+      { mineclashRules: { overtime: false } },
+    );
+    give(players[0], 7600);
+    give(players[1], 100);
+    at(30);
+    expect(checkMineclashWin(game)).toBe(false); // 76 < 80, no overtime
+    at(200);
+    expect(checkMineclashWin(game)).toBe(false); // no time limit
+    give(players[0], 500);
+    expect(checkMineclashWin(game)).toBe(true); // 81 > 80
+    expect(wins).toEqual([["player", "h1"]]);
+  });
+
+  it("custom with host timer: most land wins at the host's end", async () => {
+    const { game, players, give, wins, at } = await make(
+      [
+        ["h1", H],
+        ["h2", H],
+      ],
+      { mineclashRules: { overtime: false }, maxTimerValue: 40 },
+    );
+    give(players[0], 300);
+    give(players[1], 200);
+    at(39);
+    expect(checkMineclashWin(game)).toBe(false);
+    at(40);
+    expect(checkMineclashWin(game)).toBe(true);
+    expect(wins).toEqual([["player", "h1"]]);
+  });
+
   it("min 25: human with most land wins, nation with more is ignored", async () => {
     const { game, players, give, wins, at } = await make([
       ["h1", H],

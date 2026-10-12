@@ -47,7 +47,6 @@ import { isGuestClaims, mineclashIdentity } from "./mineclash/Identity";
 import { readResult } from "./mineclash/MineclashResultStore";
 import {
   acceptRules,
-  CUSTOM_STAKE_END_MINUTES,
   statusResponse,
   validateStakeCreate,
 } from "./mineclash/MineclashStake";
@@ -307,7 +306,8 @@ export async function startWorker() {
       gc = {
         ...gc,
         mineclashStake: { coins: checked.coins },
-        mineclashRules: { endMinutes: CUSTOM_STAKE_END_MINUTES },
+        // mineclash #23: custom = fixed 80 %, host timer or none (no overtime)
+        mineclashRules: { overtime: false },
       } as typeof gc;
     }
 

@@ -24,7 +24,6 @@ import type { MineclashWallet } from "./MineclashWallet";
 export const STAKE_MAX_ACCOUNTS_PER_IP = 2;
 
 /** Ende-Minute fuer Custom-Einsatz-Lobbys ohne Zeitlimit (Schema-Maximum). */
-export const CUSTOM_STAKE_END_MINUTES = 120;
 
 export type StakeCode =
   | "stake_guest"

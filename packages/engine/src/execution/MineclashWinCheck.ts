@@ -5,7 +5,8 @@ import {
   Team,
 } from "@openfront/engine-api/game/GameTypes";
 import {
-  MINECLASH_END_MINUTES,
+  mineclashBar,
+  mineclashEndMinutes,
   mineclashThreshold,
 } from "@openfront/engine-api/Schemas";
 import type { Game, Player } from "../game/Game";
@@ -62,12 +63,13 @@ export function checkMineclashWin(mg: Game): boolean {
     return win([...aliveSides]);
   }
 
+  const rules = cfg.mineclashRules ?? {};
   const elapsed = mg.elapsedGameSeconds();
   const land = mg.numLandTiles() - mg.numTilesWithFallout();
   const sorted = [...tiles.entries()].sort((a, b) => b[1] - a[1]);
   if (sorted.length > 0) {
     const [topSide, topTiles] = sorted[0];
-    if (topTiles * 100 > land * mineclashThreshold(elapsed)) {
+    if (topTiles * 100 > land * mineclashBar(rules, elapsed)) {
       if (hasAliveHuman(topSide)) return win([topSide]);
       mg.setNoHumanWinner(stats());
       return true;
@@ -75,11 +77,8 @@ export function checkMineclashWin(mg: Game): boolean {
   }
 
   // Time end: the host's timer (if shorter) or the preset's end minute.
-  const endMinutes = Math.min(
-    cfg.mineclashRules?.endMinutes ?? MINECLASH_END_MINUTES,
-    cfg.maxTimerValue ?? Infinity,
-  );
-  if (elapsed >= endMinutes * 60) {
+  const endMinutes = mineclashEndMinutes(cfg);
+  if (endMinutes !== undefined && elapsed >= endMinutes * 60) {
     // FFA: bots/nations don't count. Teams: the leading team counts as a
     // whole, so a nation-only team (humans vs nations) in front means none.
     const pool = isTeams ? sorted : sorted.filter(([s]) => hasAliveHuman(s));

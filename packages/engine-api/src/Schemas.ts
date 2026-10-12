@@ -229,8 +229,33 @@ export function mineclashThreshold(elapsedSeconds: number): number {
   return past <= 0 ? 80 : 80 - Math.floor(past / 60);
 }
 export const MineclashRulesSchema = z.object({
-  endMinutes: zb.uint({ min: 1, max: 120 }),
+  // undefined = no time limit (custom lobby without length)
+  endMinutes: zb.uint({ min: 1, max: 120 }).optional(),
+  // false = fixed 80 % bar, no overtime (custom lobbies). Default: on (rotation).
+  overtime: z.boolean().optional(),
 });
+export type MineclashRules = z.infer<typeof MineclashRulesSchema>;
+
+// Win bar for these rules: the rotation's sinking bar, or a fixed 80 %.
+export function mineclashBar(
+  rules: MineclashRules,
+  elapsedSeconds: number,
+): number {
+  return rules.overtime === false ? 80 : mineclashThreshold(elapsedSeconds);
+}
+
+// Game minute at which the human with the most land wins (shorter of the
+// preset's end and the host timer); undefined = no time limit.
+export function mineclashEndMinutes(cfg: {
+  mineclashRules?: MineclashRules;
+  maxTimerValue?: number | null;
+}): number | undefined {
+  const end = Math.min(
+    cfg.mineclashRules?.endMinutes ?? Infinity,
+    cfg.maxTimerValue ?? Infinity,
+  );
+  return Number.isFinite(end) ? end : undefined;
+}
 
 // A lobby pool: several lobbies that arriving players are spread across, so
 // one advertised entry point can absorb more players than a single lobby
