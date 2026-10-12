@@ -37,6 +37,11 @@ import { logger } from "./Logger";
 import { resolveVerifiedJoin } from "./Privilege";
 
 import { MapPlaylist } from "./MapPlaylist";
+import {
+  readMatchRecord,
+  scrubForPublic,
+  startArchiveCleanup,
+} from "./MineclashArchive";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { PrivilegeRefresher } from "./PrivilegeRefresher";
 import { startRankedCheckinLoops } from "./RankedCheckin";
@@ -414,6 +419,19 @@ export async function startWorker() {
     }
     res.json(game.gameInfo());
   });
+
+  // mineclash #29: Replay-Record aus der eigenen Ablage (ersetzt API /game/<id>)
+  app.get("/api/archive/:id", async (req, res) => {
+    try {
+      const rec = await readMatchRecord(req.params.id);
+      if (rec === null) return res.status(404).json({ error: "Not found" });
+      res.json(scrubForPublic(rec));
+    } catch (e) {
+      log.error(`archive read failed: ${e}`);
+      res.status(500).json({ error: "Archive error" });
+    }
+  });
+  if (workerId === 0) startArchiveCleanup();
 
   registerGamePreviewRoute({
     app,
