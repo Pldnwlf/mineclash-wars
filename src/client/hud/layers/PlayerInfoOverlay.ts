@@ -17,9 +17,25 @@ import {
   TouchEvent,
 } from "../../InputHandler";
 import { TransformHandler } from "../../TransformHandler";
-import { renderNumber, renderTroops, translateText } from "../../Utils";
+import {
+  renderDuration,
+  renderNumber,
+  renderTroops,
+  translateText,
+} from "../../Utils";
 import { GameView, PlayerView, UnitView } from "../../view";
+import {
+  EMOJI_ICON_KIND,
+  getFirstPlacePlayer,
+  getPlayerIcons,
+  IMAGE_ICON_KIND,
+} from "../PlayerIcons";
+import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
 import { CloseRadialMenuEvent } from "./RadialMenu";
+import { SpawnBarVisibleEvent } from "./SpawnTimer";
+
+const allianceIcon = assetUrl("images/AllianceIcon.svg");
+const traitorIcon = assetUrl("images/TraitorIcon.svg");
 
 function euclideanDistWorld(
   coord: { x: number; y: number },
@@ -64,7 +80,16 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
   @state()
   private _isInfoVisible: boolean = false;
 
+  @state()
+  private spawnBarVisible = false;
+  @state()
+  private immunityBarVisible = false;
+
   private _isActive = false;
+
+  private get barOffset(): number {
+    return (this.spawnBarVisible ? 7 : 0) + (this.immunityBarVisible ? 7 : 0);
+  }
 
   private lastMouseUpdate = 0;
 
@@ -77,6 +102,12 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     );
     this.eventBus.on(TouchEvent, (e: TouchEvent) => this.maybeShow(e.x, e.y));
     this.eventBus.on(CloseRadialMenuEvent, () => this.hide());
+    this.eventBus.on(SpawnBarVisibleEvent, (e) => {
+      this.spawnBarVisible = e.visible;
+    });
+    this.eventBus.on(ImmunityBarVisibleEvent, (e) => {
+      this.immunityBarVisible = e.visible;
+    });
     this._isActive = true;
   }
 
@@ -195,6 +226,13 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       [PlayerType.Human]: "player",
     }[player.type()];
     const flag = player.cosmetics.flag;
+    const icons = getPlayerIcons({
+      game: this.game,
+      player,
+      firstPlace: getFirstPlacePlayer(this.game),
+    });
+    const traitorTicks = player.getTraitorRemainingTicks();
+    const alliance = myPlayer?.alliances().find((a) => a.other === player.id());
 
     return html`
       <div class="px-3 py-2 space-y-1 text-sm">
@@ -209,6 +247,44 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
             : ""}
           <span>${player.displayName()}</span>
         </div>
+        ${icons.length > 0 || traitorTicks > 0 || alliance
+          ? html`<div class="flex items-center gap-2 flex-wrap text-xs">
+              ${icons.map((icon) =>
+                icon.kind === EMOJI_ICON_KIND && icon.text
+                  ? html`<span class="font-mono text-sm" translate="no"
+                      >${icon.text}</span
+                    >`
+                  : icon.kind === IMAGE_ICON_KIND && icon.src
+                    ? html`<img src=${icon.src} alt="" class="w-4 h-4" />`
+                    : "",
+              )}
+              ${traitorTicks > 0
+                ? html`<span class="flex items-center gap-1 text-red-400"
+                    ><img
+                      src=${traitorIcon}
+                      alt=""
+                      class="w-4 h-4"
+                    />${renderDuration(Math.floor(traitorTicks / 10))}</span
+                  >`
+                : ""}
+              ${alliance
+                ? html`<span class="flex items-center gap-1 text-green-400"
+                    ><img
+                      src=${allianceIcon}
+                      alt=""
+                      class="w-4 h-4"
+                    />${renderDuration(
+                      Math.max(
+                        0,
+                        Math.floor(
+                          (alliance.expiresAt - this.game.ticks()) / 10,
+                        ),
+                      ),
+                    )}</span
+                  >`
+                : ""}
+            </div>`
+          : ""}
         ${this.row(
           translateText("player_info_overlay.type"),
           translateText(`player_type.${typeKey}`),
@@ -289,6 +365,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     return html`
       <div
         class="fixed top-14 right-0 z-[999] w-44 lg:w-56 pointer-events-none"
+        style="margin-top: ${this.barOffset}px;"
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
       >
         <div
