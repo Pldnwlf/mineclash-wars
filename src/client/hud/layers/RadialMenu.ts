@@ -658,17 +658,18 @@ export class RadialMenu implements Controller {
               .attr("y", arc.centroid(d)[1] - height / 2);
           });
 
-          if (this.params && d.data.cooldown?.(this.params)) {
-            const cooldown = Math.ceil(d.data.cooldown?.(this.params));
+          const labelText = this.params ? this.itemLabel(d.data) : "";
+          if (labelText) {
             content
               .append("text")
               .attr("class", `cooldown-text`)
-              .text(cooldown + "s")
+              .text(labelText)
               .attr("fill", "white")
               .attr("opacity", disabled ? 0.5 : 1)
               .attr("font-size", "14px")
               .attr("font-weight", "bold")
-              .attr("x", arc.centroid(d)[0] - this.config.iconSize / 4)
+              .attr("text-anchor", "middle")
+              .attr("x", arc.centroid(d)[0])
               .attr("y", arc.centroid(d)[1] + this.config.iconSize / 2 + 7);
           }
         }
@@ -1155,12 +1156,12 @@ export class RadialMenu implements Controller {
 
             // Update cooldown text if applicable
             const cooldownElement = icon.select(".cooldown-text");
-            if (this.params && !cooldownElement.empty() && item.cooldown) {
-              const cooldown = Math.ceil(item.cooldown(this.params));
-              if (cooldown <= 0) {
+            if (this.params && !cooldownElement.empty()) {
+              const labelText = this.itemLabel(item);
+              if (!labelText) {
                 cooldownElement.remove();
               } else {
-                cooldownElement.text(cooldown + "s");
+                cooldownElement.text(labelText);
               }
             }
           }
@@ -1173,6 +1174,15 @@ export class RadialMenu implements Controller {
 
     // Refresh center button state
     this.updateCenterButtonState(this.centerButtonState);
+  }
+
+  // mineclash #15: label (boat counter) or cooldown countdown under the icon
+  private itemLabel(item: MenuElement): string {
+    if (!this.params) return "";
+    const label = item.label?.(this.params);
+    if (label) return label;
+    const cooldown = Math.ceil(item.cooldown?.(this.params) ?? 0);
+    return cooldown > 0 ? cooldown + "s" : "";
   }
 
   private refreshAllyExtendIcon(

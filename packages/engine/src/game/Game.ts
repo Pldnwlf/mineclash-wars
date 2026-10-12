@@ -438,6 +438,8 @@ export interface Player extends PlayerLike {
   allianceWith(other: Player): MutableAlliance | null;
   allianceInfo(other: Player): AllianceInfo | null;
   canSendAllianceRequest(other: Player): boolean;
+  allianceRequestReadyTick(other: Player): Tick; // mineclash #15
+  donateReadyTick(recipient: Player): Tick; // mineclash #15
   breakAlliance(alliance: Alliance): void;
   removeAllAlliances(): void;
   createAllianceRequest(recipient: Player): AllianceRequest | null;

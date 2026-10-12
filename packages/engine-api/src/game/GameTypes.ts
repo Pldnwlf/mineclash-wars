@@ -412,6 +412,8 @@ export interface PlayerInteraction {
   sharedBorder: boolean;
   canSendEmoji: boolean;
   canSendAllianceRequest: boolean;
+  allianceRequestReadyTick: Tick; // mineclash #15
+  donateReadyTick: Tick; // mineclash #15
   canBreakAlliance: boolean;
   canTarget: boolean;
   canDonateGold: boolean;

@@ -469,12 +469,6 @@ export class EngineConfig extends Config {
   minDistanceBetweenPlayers(): number {
     return 30;
   }
-  boatMaxNumber(): number {
-    if (this.isUnitDisabled(UnitType.TransportShip)) {
-      return 0;
-    }
-    return 3;
-  }
   numBots(): number {
     return this.bots();
   }

@@ -859,6 +859,32 @@ export class PlayerImpl implements Player {
     return delta >= this.mg.config().allianceRequestCooldown();
   }
 
+  // mineclash #15: tick at which a request to `other` is possible again (0 = no cooldown)
+  allianceRequestReadyTick(other: Player): Tick {
+    const hasIncoming = this.incomingAllianceRequests().some(
+      (ar) => ar.requestor() === other,
+    );
+    if (hasIncoming) return 0;
+    const last = Math.max(
+      -1,
+      ...this.pastOutgoingAllianceRequests
+        .filter((ar) => ar.recipient() === other)
+        .map((ar) => ar.createdAt()),
+    );
+    return last < 0 ? 0 : last + this.mg.config().allianceRequestCooldown();
+  }
+
+  // mineclash #15: tick at which a donation to `recipient` is possible again (0 = no cooldown)
+  donateReadyTick(recipient: Player): Tick {
+    const last = Math.max(
+      -1,
+      ...this.sentDonations
+        .filter((d) => d.recipient === recipient)
+        .map((d) => d.tick),
+    );
+    return last < 0 ? 0 : last + this.mg.config().donateCooldown();
+  }
+
   breakAlliance(alliance: MutableAlliance): void {
     this.mg.breakAlliance(this, alliance);
   }
