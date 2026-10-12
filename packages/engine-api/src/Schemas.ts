@@ -222,6 +222,12 @@ export const OvertimeConfigSchema = z.object({
 // bar sinking 1 point/min from minute 15, tie shares). endMinutes = game
 // minute at which the human with the most land wins.
 export const MINECLASH_END_MINUTES = 25;
+// Win bar in whole percent after `elapsedSeconds`: 80 %, from minute 15 one
+// point less per minute (shared by engine win check and client HUD).
+export function mineclashThreshold(elapsedSeconds: number): number {
+  const past = Math.floor(elapsedSeconds) - 15 * 60;
+  return past <= 0 ? 80 : 80 - Math.floor(past / 60);
+}
 export const MineclashRulesSchema = z.object({
   endMinutes: zb.uint({ min: 1, max: 120 }),
 });

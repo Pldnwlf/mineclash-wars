@@ -4,7 +4,10 @@ import {
   PlayerType,
   Team,
 } from "@openfront/engine-api/game/GameTypes";
-import { MINECLASH_END_MINUTES } from "@openfront/engine-api/Schemas";
+import {
+  MINECLASH_END_MINUTES,
+  mineclashThreshold,
+} from "@openfront/engine-api/Schemas";
 import type { Game, Player } from "../game/Game";
 
 // mineclash #9: win rules for stake/rotation matches (GameConfig.mineclashRules).
@@ -15,14 +18,7 @@ import type { Game, Player } from "../game/Game";
 // - 80% of land; from minute 15 the bar drops 1 point per minute; at the end
 //   minute (25 => 70%) the human with the most land wins; ties share.
 // Integer math on whole game seconds (ticks / 10), deterministic.
-const BASE_PERCENT = 80;
-const OVERTIME_START_MINUTES = 15;
-
-// Win bar in whole percent after `elapsedSeconds`.
-export function mineclashThreshold(elapsedSeconds: number): number {
-  const past = Math.floor(elapsedSeconds) - OVERTIME_START_MINUTES * 60;
-  return past <= 0 ? BASE_PERCENT : BASE_PERCENT - Math.floor(past / 60);
-}
+export { mineclashThreshold };
 
 type Side = string | Player; // team name (team modes) or player (FFA)
 

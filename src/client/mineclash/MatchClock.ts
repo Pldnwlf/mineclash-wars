@@ -1,5 +1,5 @@
 import type { GameConfig } from "@openfront/engine-api/Schemas";
-import { mineclashThreshold } from "@openfront/engine/execution/MineclashWinCheck";
+import { mineclashThreshold } from "@openfront/engine-api/Schemas";
 import { translateText } from "../Utils";
 
 // mineclash #9: stake matches have no host timer (maxTimerValue undefined), but
