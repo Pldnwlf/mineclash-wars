@@ -6,9 +6,9 @@ import {
   ID,
   PartialGameRecord,
 } from "../core/Schemas";
-import { replacer } from "../core/Util";
 import { registeredSite } from "./ClusterCheckin";
 import { logger } from "./Logger";
+import { readMatchRecord, writeMatchRecord } from "./MineclashArchive";
 import { ServerEnv } from "./ServerEnv";
 
 const log = logger.child({ component: "Archive" });
@@ -22,21 +22,8 @@ export async function archive(gameRecord: GameRecord) {
       });
       return;
     }
-    const url = `${ServerEnv.jwtIssuer()}/game/${gameRecord.info.gameID}`;
-    const response = await fetch(url, {
-      method: "POST",
-      body: JSON.stringify(gameRecord, replacer),
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ServerEnv.apiKey(),
-      },
-    });
-    if (!response.ok) {
-      log.error(`error archiving game record: ${response.statusText}`, {
-        gameID: gameRecord.info.gameID,
-      });
-      return;
-    }
+    // mineclash #29: eigene Ablage statt closed-source API
+    await writeMatchRecord(gameRecord);
   } catch (error) {
     log.error(`error archiving game record: ${error}`, {
       gameID: gameRecord.info.gameID,
@@ -53,21 +40,8 @@ export async function readGameRecord(
       log.error(`invalid game ID: ${gameId}`);
       return null;
     }
-    const url = `${ServerEnv.jwtIssuer()}/game/${gameId}`;
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ServerEnv.apiKey(),
-      },
-    });
-    const record = await response.json();
-    if (!response.ok) {
-      log.error(`error reading game record: ${response.statusText}`, {
-        gameID: gameId,
-      });
-      return null;
-    }
+    const record = await readMatchRecord(gameId);
+    if (record === null) return null;
     return GameRecordSchema.parse(record);
   } catch (error) {
     log.error(`error reading game record: ${error}`, {

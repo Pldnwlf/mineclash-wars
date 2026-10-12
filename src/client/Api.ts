@@ -2040,7 +2040,9 @@ export async function fetchGameById(
   gameId: string,
 ): Promise<AnalyticsRecord | false> {
   try {
-    const url = `${getApiBase()}/game/${encodeURIComponent(gameId)}`;
+    // mineclash #29: Archiv liegt auf dem Spielserver
+    await ensureServerList();
+    const url = `${ClientEnv.gameHttpBase(gameId)}/${ClientEnv.gameWorkerPath(gameId)}/api/archive/${encodeURIComponent(gameId)}`;
     const res = await fetch(url, {
       headers: {
         Accept: "application/json",

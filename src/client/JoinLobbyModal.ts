@@ -28,7 +28,6 @@ import {
   GameType,
   HumansVsNations,
 } from "../core/game/Game";
-import { getApiBase } from "./Api";
 import { crazyGamesSDK } from "./CrazyGamesSDK";
 import { PublicLobbySocket } from "./LobbySocket";
 import { JoinLobbyEvent } from "./Main";
@@ -1433,12 +1432,11 @@ export class JoinLobbyModal extends BaseModal {
   ): Promise<
     "success" | "redirected" | "not_found" | "version_mismatch" | "error"
   > {
-    const archiveResponse = await fetch(`${getApiBase()}/game/${lobbyId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    // mineclash #29: Replays kommen vom Spielserver, nicht von der API
+    const archiveResponse = await fetch(
+      `${ClientEnv.gameHttpBase(lobbyId)}/${ClientEnv.gameWorkerPath(lobbyId)}/api/archive/${encodeURIComponent(lobbyId)}`,
+      { method: "GET", headers: { "Content-Type": "application/json" } },
+    );
 
     if (archiveResponse.status === 404) {
       return "not_found";
