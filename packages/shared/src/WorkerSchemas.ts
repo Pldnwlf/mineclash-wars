@@ -4,7 +4,11 @@ import { z } from "zod";
 
 // `pool` points joiners at other lobbies, so only the authenticated admin-bot
 // route (which parses GameConfigSchema directly) may set one.
-export const CreateGameInputSchema = GameConfigSchema.omit({ pool: true }).or(
+export const CreateGameInputSchema = GameConfigSchema.omit({
+  pool: true,
+  mineclashRules: true, // mineclash #22: nur der Server setzt Regeln
+  mineclashStake: true, // ... und Einsatz, nie der Client
+}).or(
   z
     .object({})
     .strict()

@@ -214,8 +214,11 @@ export async function startMaster() {
   startKumaPush(() => lobbyService.isHealthy());
 
   // mineclash #22/#42: serverStart (Neustart-Freigabe, offene Settles
-  // ausgenommen) VOR jeder neuen Hold, also vor dem Forken der Worker.
-  await getWallet()?.start();
+  // ausgenommen) im Hintergrund mit Retry. Blockiert nichts: Gratis-Spiel laeuft,
+  // wallet.hold lehnt ab (wallet_not_ready), bis es geklappt hat.
+  void getWallet()
+    ?.start()
+    .catch((e) => log.error(`wallet start failed: ${e}`));
 
   // Fork workers
   for (let i = 0; i < ServerEnv.numWorkers(); i++) {

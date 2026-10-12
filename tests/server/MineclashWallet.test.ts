@@ -41,7 +41,7 @@ const wallets: MineclashWallet[] = [];
 const flaky: typeof fetch = (...a) =>
   down ? Promise.reject(new TypeError("fetch failed")) : fetch(...a);
 
-function mk(serverId = "s1") {
+function mk(serverId = "s1", masterPid = process.pid) {
   const w = new MineclashWallet({
     api: new MineclashApiClient(base, KEY, flaky),
     serverId,
@@ -49,6 +49,7 @@ function mk(serverId = "s1") {
     backoff: [5, 20],
     sweepMs: 20,
     heartbeatMs: 1000,
+    masterPid,
   });
   wallets.push(w);
   return w;
@@ -248,7 +249,27 @@ describe("Ausfall (#42)", () => {
     await w.hold(mid(), A, 10);
   });
 
+  test("Worker: Hold erst, wenn der Master serverStart geschafft hat", async () => {
+    const worker = mk();
+    expect(worker.isReady()).toBe(false);
+    await expect(worker.hold(mid(), A, 10)).rejects.toMatchObject({
+      code: "wallet_not_ready",
+    });
+    down = true;
+    const master = mk();
+    const started = master.start(); // blockiert nur diesen Aufruf
+    await new Promise((r) => setTimeout(r, 30));
+    expect(worker.isReady()).toBe(false);
+    down = false;
+    await started;
+    expect(worker.isReady()).toBe(true);
+    // Datei eines anderen (frueheren) Masters zaehlt nicht
+    expect(mk("s1", process.pid + 1).isReady()).toBe(false);
+    await worker.hold(mid(), A, 10);
+  });
+
   test("Datei eines toten Workers wird vom Master nachgeholt", async () => {
+    await ready();
     const worker = mk();
     worker.startWorker();
     const m = mid();
@@ -259,7 +280,6 @@ describe("Ausfall (#42)", () => {
     worker.stop(); // Worker stirbt
     down = false;
     expect(files()).toEqual([`${m}.json`]);
-    await ready(mk());
     await until(() => !hasOpenSettleFiles(dir));
     expect(bal(B).balance).toBe(1090);
   });

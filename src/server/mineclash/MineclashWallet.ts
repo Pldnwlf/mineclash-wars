@@ -122,6 +122,8 @@ export interface WalletOptions {
   backoff?: [number, number];
   heartbeatMs?: number;
   sweepMs?: number;
+  /** Worker: PID des Masters, der die Bereit-Datei schreibt (Default ppid). */
+  masterPid?: number;
 }
 
 export class MineclashWallet {
@@ -144,12 +146,34 @@ export class MineclashWallet {
     this.ready = false;
   }
 
+  private readyFile() {
+    return path.join(this.dir, "wallet-ready");
+  }
+
+  /**
+   * Hold erlaubt? Master: serverStart war erfolgreich. Worker: der Master hat
+   * es per Datei bestaetigt (prozess-uebergreifend, Datei enthaelt seine PID,
+   * ein Rest eines frueheren Masters zaehlt nicht).
+   */
+  isReady(): boolean {
+    if (this.ready) return true;
+    try {
+      return (
+        readFileSync(this.readyFile(), "utf8") ===
+        String(this.o.masterPid ?? process.ppid)
+      );
+    } catch {
+      return false;
+    }
+  }
+
   // ---- Start --------------------------------------------------------------
 
   /** Master: serverStart(open) mit Retry, danach Nachholen + Heartbeat. */
   async start(): Promise<void> {
     this.isMaster = true;
     await fs.mkdir(this.dir, { recursive: true });
+    await fs.rm(this.readyFile(), { force: true });
     const t0 = this.now();
     let delay = this.backoff[0];
     while (!this.stopped) {
@@ -167,6 +191,7 @@ export class MineclashWallet {
         delay = Math.min(delay * 2, this.backoff[1]);
       }
     }
+    await fs.writeFile(this.readyFile(), String(process.pid));
     this.ready = true;
     this.startHeartbeat();
     const sweep = () => void this.sweep();
@@ -176,7 +201,6 @@ export class MineclashWallet {
 
   /** Nur Heartbeat (Worker-Prozesse). Holds erst nach start() im Master. */
   startWorker(): void {
-    this.ready = true;
     this.startHeartbeat();
   }
 
@@ -212,7 +236,7 @@ export class MineclashWallet {
   // ---- Holds --------------------------------------------------------------
 
   async hold(matchId: string, uuid: string, coins: number): Promise<void> {
-    if (!this.ready) throw new MineclashApiError(503, "wallet_not_ready");
+    if (!this.isReady()) throw new MineclashApiError(503, "wallet_not_ready");
     await this.o.api.hold({
       match_id: matchId,
       uuid,
@@ -391,6 +415,11 @@ let instance: MineclashWallet | null | undefined;
 function serverIdFromEnv(): string {
   const v = process.env.MINECLASH_SERVER_ID;
   return v !== undefined && v !== "" ? v : "mineclash-1";
+}
+
+/** #23: false => Einsatz-Lobbys gerade nicht verfuegbar (Gratis laeuft normal). */
+export function walletReady(): boolean {
+  return getWallet()?.isReady() ?? false;
 }
 
 /** null, wenn MINECLASH_API_URL nicht gesetzt (Wallet aus). */
