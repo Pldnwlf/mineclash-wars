@@ -179,6 +179,13 @@ export class Config {
   isUnitDisabled(unitType: UnitType): boolean {
     return this._gameConfig.disabledUnits?.includes(unitType) ?? false;
   }
+  // mineclash #15: moved from EngineConfig so the radial menu can show x/y
+  boatMaxNumber(): number {
+    if (this.isUnitDisabled(UnitType.TransportShip)) {
+      return 0;
+    }
+    return 3;
+  }
   instantBuild(): boolean {
     return this._gameConfig.instantBuild;
   }

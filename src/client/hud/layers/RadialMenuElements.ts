@@ -16,6 +16,7 @@ import { Config } from "@openfront/engine-lib/configuration/Config";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import { findClosestBy } from "@openfront/engine-lib/Util";
 import { assetUrl } from "@openfront/shared/AssetUrls";
+import { boatCounter, cooldownSeconds } from "../../mineclash/RadialLabels";
 import { UIState } from "../../UIState";
 import { translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
@@ -72,6 +73,7 @@ export interface MenuElement {
   tooltipKeys?: TooltipKey[];
 
   cooldown?: (params: MenuElementParams) => number;
+  label?: (params: MenuElementParams) => string; // mineclash #15: small text under the icon
   disabled: (params: MenuElementParams) => boolean;
   action?: (params: MenuElementParams) => void; // For leaf items that perform actions
   subMenu?: (params: MenuElementParams) => MenuElement[]; // For non-leaf items that open submenus
@@ -224,6 +226,12 @@ const allyRequestElement: MenuElement = {
     !params.playerActions?.interaction?.canBreakAlliance,
   color: COLORS.ally,
   icon: allianceIcon,
+  // mineclash #15: visible countdown while the request cooldown runs
+  cooldown: (params: MenuElementParams) =>
+    cooldownSeconds(
+      params.playerActions?.interaction?.allianceRequestReadyTick,
+      params.game.ticks(),
+    ),
   action: (params: MenuElementParams) => {
     params.playerActionHandler.handleAllianceRequest(
       params.myPlayer,
@@ -612,6 +620,12 @@ const donateGoldRadialElement: MenuElement = {
     !params.playerActions?.interaction?.canDonateGold,
   icon: donateGoldIcon,
   color: "#f59e0b",
+  // mineclash #15
+  cooldown: (params: MenuElementParams) =>
+    cooldownSeconds(
+      params.playerActions?.interaction?.donateReadyTick,
+      params.game.ticks(),
+    ),
   action: (params: MenuElementParams) => {
     if (!params.selected) return;
     params.playerPanel.openSendGoldModal(
@@ -718,6 +732,12 @@ export const boatMenuElement: MenuElement = {
     ),
   icon: boatIcon,
   color: COLORS.boat,
+  // mineclash #15: boats in use / max
+  label: (params: MenuElementParams) =>
+    boatCounter(
+      params.myPlayer.units(UnitType.TransportShip).length,
+      params.game.config().boatMaxNumber(),
+    ),
 
   action: async (params: MenuElementParams) => {
     params.playerActionHandler.handleBoatAttack(params.myPlayer, params.tile);
