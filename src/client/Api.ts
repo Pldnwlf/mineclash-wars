@@ -61,6 +61,7 @@ import {
   userAuth,
 } from "./Auth";
 import { ClientEnv } from "./ClientEnv";
+import { Features } from "./mineclash/Features";
 import { ensureServerList } from "./ServerList";
 import { UserSettings } from "./UserSettings";
 
@@ -2290,6 +2291,7 @@ export async function fetchTribeLeaderboard(): Promise<
 }
 
 export async function getNews(): Promise<NewsItem[]> {
+  if (!Features.remoteNews) return newsItemsFallback as NewsItem[]; // mineclash #5
   try {
     const res = await fetch(`${getApiBase()}/news.json`, {
       headers: { Accept: "application/json" },

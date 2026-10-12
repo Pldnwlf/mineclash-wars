@@ -36,6 +36,7 @@ import {
 } from "./Api";
 import { isDesktopShell } from "./DesktopShell";
 import { showInGameAlert, showInGameConfirm } from "./InGameModal";
+import { Features } from "./mineclash/Features";
 import {
   classifyPurchaseReturn,
   paymentsProvider,
@@ -853,6 +854,7 @@ export function invalidateCosmetics(): void {
 }
 
 export async function fetchCosmetics(): Promise<Cosmetics | null> {
+  if (!Features.cosmetics) return null; // mineclash #5
   if (__cosmetics !== null) {
     return __cosmetics;
   }

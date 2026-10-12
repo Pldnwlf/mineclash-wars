@@ -1,3 +1,4 @@
+import { Features } from "./mineclash/Features";
 import { whenPageIdle } from "./WhenPageIdle";
 
 /**
@@ -55,6 +56,9 @@ export function whenModalLoaded(tag: string, open: () => void): void {
 export function prefetchModals(): void {
   // A failed prefetch is left to the open that needs the chunk.
   whenPageIdle(() => {
-    for (const load of Object.values(modules)) void load().catch(() => {});
+    for (const [tag, load] of Object.entries(modules)) {
+      if (Features.disabledModals.includes(tag)) continue; // mineclash #5
+      void load().catch(() => {});
+    }
   });
 }

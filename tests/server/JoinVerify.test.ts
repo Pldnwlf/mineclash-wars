@@ -159,12 +159,16 @@ describe("planJoinVerify", () => {
     });
   });
 
-  it("rejects a first join without a token", () => {
+  // mineclash #5: no Turnstile anymore, so a first join without a token is
+  // verified (name check only) instead of rejected.
+  it("verifies a first join without a token using a null token", () => {
     expect(planJoinVerify({ ...firstJoin, turnstileToken: null })).toEqual({
-      action: "reject",
+      action: "verify",
+      token: null,
     });
     expect(planJoinVerify({ ...firstJoin, turnstileToken: "" })).toEqual({
-      action: "reject",
+      action: "verify",
+      token: null,
     });
   });
 
@@ -185,7 +189,7 @@ describe("planJoinVerify", () => {
         gameStarted: true,
         identityUnchanged: true,
       }),
-    ).toEqual({ action: "reject" });
+    ).toEqual({ action: "verify", token: null });
   });
 
   it("verifies a pre-start re-admit with a changed identity using a null token", () => {
