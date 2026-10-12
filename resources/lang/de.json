@@ -1527,6 +1527,8 @@
     "history_result_unfinished": "Abgebrochen",
     "history_result_won": "Gewonnen",
     "history_title": "Match-Historie",
+    "leaderboard_less": "Weniger Spieler zeigen",
+    "leaderboard_more": "Alle Spieler zeigen",
     "link_credits": "Credits",
     "link_license": "Lizenz (AGPL-3.0)",
     "link_license_assets": "Lizenz der Assets",

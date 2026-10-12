@@ -390,6 +390,23 @@ export async function createStub(opts: StubOptions) {
   }
 
   const server = http.createServer((req, res) => {
+    // Browser clients (guest JWT, cookie refresh) call this API cross-origin;
+    // the real mineclash API needs the same CORS answer for play.mineclash.de.
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader("access-control-allow-origin", origin);
+      res.setHeader("access-control-allow-credentials", "true");
+      res.setHeader("vary", "origin");
+    }
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, {
+        "access-control-allow-methods": "GET, POST, OPTIONS",
+        "access-control-allow-headers":
+          req.headers["access-control-request-headers"] ?? "content-type",
+      });
+      res.end();
+      return;
+    }
     const url = new URL(req.url ?? "/", "http://stub");
     route(req, url)
       .catch((e): [number, unknown] => {

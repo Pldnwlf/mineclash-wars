@@ -9,6 +9,9 @@ import { Colord } from "colord";
 import { html, LitElement } from "lit";
 import { customElement, property, query, state } from "lit/decorators.js";
 import type { Controller } from "../../Controller";
+import "../../mineclash/CompactLeaderboard";
+import type { CompactLeaderboard } from "../../mineclash/CompactLeaderboard";
+import { Features } from "../../mineclash/Features";
 import { leaderboardBadgeText } from "../../mineclash/LeaderboardBadge";
 import { Platform } from "../../Platform";
 import { themeProvider } from "../../theme/ThemeProvider";
@@ -49,6 +52,7 @@ export class GameLeftSidebar extends LitElement implements Controller {
   @property({ attribute: false }) public eventBus: EventBus | null = null;
   @query("player-stats") private playerStats?: PlayerStats;
   @query("team-stats") private teamStats?: TeamStats;
+  @query("mineclash-leaderboard") private compactBoard?: CompactLeaderboard;
   private showPlayerStatsAfterSpawn = false;
 
   createRenderRoot() {
@@ -95,6 +99,7 @@ export class GameLeftSidebar extends LitElement implements Controller {
     }
 
     this.playerStats?.refresh();
+    this.compactBoard?.refresh();
     this.teamStats?.refresh();
   }
 
@@ -129,7 +134,7 @@ export class GameLeftSidebar extends LitElement implements Controller {
   render() {
     return html`
       <aside
-        class=${`fixed top-0 left-0 z-900 flex flex-col max-h-[calc(100vh-80px)] overflow-y-auto p-2 bg-gray-800/92 backdrop-blur-sm shadow-xs rounded-br-lg ${this.isPlayerStatsShown || this.isTeamStatsShown ? "max-[400px]:w-full max-[400px]:rounded-none" : ""} transition-all duration-300 ease-out transform ${
+        class=${`fixed top-0 left-0 z-900 flex flex-col max-h-[calc(100vh-80px)] overflow-y-auto p-2 bg-[#14213d]/90 backdrop-blur-sm shadow-xs rounded-br-lg ${this.isPlayerStatsShown || this.isTeamStatsShown ? "max-[400px]:w-full max-[400px]:rounded-none" : ""} transition-all duration-300 ease-out transform ${
           this.isVisible ? "translate-x-0" : "hidden"
         }`}
         style="margin-top: ${this.barOffset}px;"
@@ -190,13 +195,10 @@ export class GameLeftSidebar extends LitElement implements Controller {
             : null}
           ${this.isPlayerStatsShown || this.isTeamStatsShown
             ? html`<span
-                  class="rounded bg-sky-700/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                  >${this.badgeText()}</span
-                ><span
-                  class="ml-auto text-[10px] text-slate-500 select-all leading-none self-start"
-                  title=${translateText("help_modal.game_id_tooltip")}
-                  >${this.game?.gameID() ?? ""}</span
-                >`
+                class="ml-auto rounded border border-white/15 bg-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                title=${`${translateText("help_modal.game_id_tooltip")}: ${this.game?.gameID() ?? ""}`}
+                >${this.badgeText()}</span
+              >`
             : null}
         </div>
         ${this.isPlayerTeamLabelVisible
@@ -220,12 +222,19 @@ export class GameLeftSidebar extends LitElement implements Controller {
             `
           : null}
         <div class="flex flex-col gap-2 min-w-0 w-full">
-          <player-stats
-            class=${this.isPlayerStatsShown ? "block min-w-0" : "hidden"}
-            .game=${this.game}
-            .eventBus=${this.eventBus}
-            .visible=${this.isPlayerStatsShown}
-          ></player-stats>
+          ${Features.upstreamLeaderboard
+            ? html`<player-stats
+                class=${this.isPlayerStatsShown ? "block min-w-0" : "hidden"}
+                .game=${this.game}
+                .eventBus=${this.eventBus}
+                .visible=${this.isPlayerStatsShown}
+              ></player-stats>`
+            : html`<mineclash-leaderboard
+                class=${this.isPlayerStatsShown ? "block min-w-0" : "hidden"}
+                .game=${this.game}
+                .eventBus=${this.eventBus}
+                .visible=${this.isPlayerStatsShown}
+              ></mineclash-leaderboard>`}
           <team-stats
             class=${this.isTeamStatsShown && this.isTeamGame
               ? "block min-w-0"

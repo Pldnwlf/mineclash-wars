@@ -1643,6 +1643,8 @@
     "history_result_unfinished": "Cancelled",
     "history_result_won": "Won",
     "history_title": "Match history",
+    "leaderboard_less": "Show fewer players",
+    "leaderboard_more": "Show all players",
     "link_credits": "Credits",
     "link_license": "License (AGPL-3.0)",
     "link_license_assets": "Asset license",
