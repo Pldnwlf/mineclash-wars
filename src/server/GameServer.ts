@@ -76,6 +76,8 @@ import {
 } from "./IntentAuthorization";
 import { ListingState } from "./ListingState";
 import { identityFor, MatchTelemetryRecorder } from "./MatchTelemetryRecorder";
+import { ReportRequest } from "./mineclash/MineclashApi";
+import { submitReport, toUuid } from "./MineclashReports";
 import { friendsLookup, NameVisibility } from "./NameVisibility";
 import { poolTargetFor } from "./PoolRouting";
 import { Roster } from "./Roster";
@@ -169,6 +171,8 @@ export interface GameServerDeps {
   // so a test can pin a value it can assert on; production always takes the
   // random default.
   mintGroupToken: () => string;
+  // mineclash #28: persist a player report (see MineclashReports).
+  storeReport: (r: Omit<ReportRequest, "ts">) => Promise<unknown>;
 }
 
 // 16 URL-safe characters of CSPRNG output — 12 bytes is exactly 16 base64url
@@ -190,6 +194,7 @@ export function defaultGameServerDeps(): GameServerDeps {
     telemetry: noopMatchTelemetryEmitter,
     telemetryBuildHash: "DEV",
     mintGroupToken,
+    storeReport: submitReport,
   };
 }
 
@@ -2095,6 +2100,20 @@ export class GameServer {
     const key = `${client.clientID}:${reported}`;
     if (this.reports.has(key)) return;
     this.reports.set(key, { reportedBy: client.clientID, reported, reason });
+    // mineclash #28: dauerhaft speichern (UUIDs + Tick fuer die Replay-Stelle)
+    const target = this.clients.get(reported)?.persistentID;
+    if (target) {
+      this.deps
+        .storeReport({
+          match_id: this.id,
+          reporter: toUuid(client.persistentID),
+          reported: toUuid(target),
+          reason,
+          tick: this.turns.length,
+          source: "match",
+        })
+        .catch((e) => this.log.error(`report store failed: ${e}`));
+    }
     this.log.info("player reported", {
       clientID: client.clientID,
       reported,

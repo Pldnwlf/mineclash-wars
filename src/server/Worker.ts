@@ -50,6 +50,7 @@ import {
   scrubForPublic,
   startArchiveCleanup,
 } from "./MineclashArchive";
+import { postMatchReport } from "./MineclashReports";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { PrivilegeRefresher } from "./PrivilegeRefresher";
 import { startRankedCheckinLoops } from "./RankedCheckin";
@@ -485,6 +486,24 @@ export async function startWorker() {
     } catch (e) {
       log.error(`archive read failed: ${e}`);
       res.status(500).json({ error: "Archive error" });
+    }
+  });
+  // mineclash #28: Report nach dem Match (JWT, nur Teilnehmer, solange der
+  // Record existiert)
+  app.post("/api/archive/:id/report", async (req, res) => {
+    const token = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
+    const auth = await verifyClientToken(token);
+    if (auth.type !== "success")
+      return res.status(401).json({ error: "Invalid token" });
+    try {
+      const rec = await readMatchRecord(req.params.id);
+      if (rec === null) return res.status(404).json({ error: "Not found" });
+      const out = await postMatchReport(rec, auth.persistentId, req.body);
+      res.status(out.status).json(out.body);
+    } catch (e) {
+      log.error(`post-match report failed: ${e}`);
+      res.status(500).json({ error: "Report error" });
     }
   });
   if (workerId === 0) startArchiveCleanup();

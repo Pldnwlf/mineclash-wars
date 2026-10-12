@@ -9,6 +9,7 @@
 //               POST /auth/guest            => { token }
 // Env: STUB_PORT (8787), STUB_ISSUER (http://localhost:<port>), DOMAIN (aud,
 //   "localhost"), API_KEY, STUB_START_COINS (100000, Startguthaben je Konto).
+import { uuidToBase64url } from "@openfront/shared/Base64";
 import {
   exportJWK,
   generateKeyPair,
@@ -19,7 +20,6 @@ import {
 import { createHash, randomUUID } from "node:crypto";
 import http from "node:http";
 import { pathToFileURL } from "node:url";
-import { uuidToBase64url } from "@openfront/shared/Base64";
 import {
   DEFAULT_RAKE_BPS,
   HeartbeatRequestSchema,
@@ -27,8 +27,10 @@ import {
   HoldRequestSchema,
   minimalUserMe,
   ReleaseRequestSchema,
+  ReportRequestSchema,
   ServerStartRequestSchema,
   SettleRequestSchema,
+  type ReportRequest,
   type SettleRequest,
   type SettleResponse,
 } from "../src/server/mineclash/MineclashApi";
@@ -64,6 +66,7 @@ export class Ledger {
   readonly holds = new Map<string, Hold>();
   readonly entries: LedgerEntry[] = [];
   burned = 0;
+  readonly reports: ReportRequest[] = [];
   private readonly settles = new Map<
     string,
     { fingerprint: string; response: SettleResponse }
@@ -74,6 +77,19 @@ export class Ledger {
     private readonly now: () => number = Date.now,
     private readonly startCoins = 100_000,
   ) {}
+
+  /** #28: idempotent je (match_id, reporter, reported). */
+  addReport(r: ReportRequest) {
+    if (
+      !this.reports.some(
+        (x) =>
+          x.match_id === r.match_id &&
+          x.reporter === r.reporter &&
+          x.reported === r.reported,
+      )
+    )
+      this.reports.push(r);
+  }
 
   /** Summe aller Konten (+ verbrannt = Startsumme). */
   total(): number {
@@ -336,6 +352,12 @@ export async function createStub(opts: StubOptions) {
       const uuid = url.searchParams.get("uuid");
       if (!uuid) throw new ApiError(400, "uuid_required");
       return [200, ledger.balance(uuid)];
+    }
+    if (m === "POST" && p === "/reports") {
+      const r = ReportRequestSchema.safeParse(JSON.parse(await readBody(req)));
+      if (!r.success) throw new ApiError(400, "bad_request");
+      ledger.addReport(r.data);
+      return [200, { ok: true }];
     }
     if (m === "POST" && p.startsWith("/wallet/")) {
       let body: unknown;

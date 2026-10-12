@@ -174,6 +174,7 @@ export function makeGame(opts: GameOpts = {}): GameServer {
     // A failed replay: a disputed vote archives its own result.
     replayWinner: vi.fn(async () => null),
     fetchTribes: vi.fn(async () => []),
+    storeReport: vi.fn(async () => "ok"),
   };
   if (opts.telemetry !== undefined) deps.telemetry = opts.telemetry;
   if (opts.buildHash !== undefined) deps.telemetryBuildHash = opts.buildHash;
