@@ -1545,7 +1545,6 @@
     "menu_next_free": "Nächstes Match · Gratis",
     "menu_next_stake": "Nächstes Match · Einsatz",
     "menu_no_lobby": "Gerade keine Lobby offen",
-    "menu_stake_soon": "Einsatz-Matches bald verfügbar",
     "potd_coins": "Meiste Coins gewonnen",
     "potd_empty": "noch keine Daten",
     "potd_title": "Player of the day",
@@ -1581,7 +1580,19 @@
     "win_2": "Ein Mensch gewinnt auch mit 80 % des Landes. Ab Minute 15 beginnt die Overtime, der nötige Anteil sinkt um 1 % pro Minute. Bei Minute 25 (70 %) ist Schluss und der Mensch mit dem meisten Land gewinnt.",
     "win_3": "Bei Gleichstand wird der Topf zu gleichen Teilen geteilt. In Team-Modi teilt das Gewinnerteam gleichmässig.",
     "win_4": "In Custom-Lobbys setzt der Host die Länge oder keine.",
-    "win_title": "Wer gewinnt"
+    "win_title": "Wer gewinnt",
+    "badge_pot": "Topf 🪙 {coins}",
+    "lobby_rake": "Rake",
+    "menu_no_stake_lobby": "Gerade keine Einsatz-Lobby offen",
+    "stake_apply": "Einsatz setzen",
+    "stake_error": "Einsatz-Lobby nicht möglich ({code}).",
+    "stake_field": "Einsatz (Coins oder Geldbetrag, z. B. 100, 15m, $2.5m)",
+    "stake_hint_locked": "Mit Einsatz ist die Lobby öffentlich und Humans vs Nations ist aus.",
+    "stake_invalid": "Ungültiger Betrag.",
+    "stake_login_required": "Einsatz nur mit mineclash-Login.",
+    "stake_not_enough": "Nicht genug Guthaben für den Einsatz von {coins} Coins.",
+    "stake_too_high": "Einsatz ist höher als dein Guthaben.",
+    "stake_unavailable": "Einsatz gerade nicht verfügbar."
   },
   "mode_selector": {
     "coming_soon": "Bald Verfügbar",

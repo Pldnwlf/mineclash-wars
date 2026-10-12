@@ -3,6 +3,7 @@ import {
   GameMapSize,
   GameMapType,
   GameMode,
+  HumansVsNations,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import {
@@ -29,6 +30,7 @@ import {
   translateText,
 } from "../client/Utils";
 import { createLobby, getUserMe, queueLobby, setLobbyListed } from "./Api";
+import { getPlayToken } from "./Auth";
 import "./components/baseComponents/Modal";
 import { BaseModal } from "./components/BaseModal";
 import "./components/ConfirmDialog";
@@ -46,6 +48,12 @@ import { modalHeader } from "./components/ui/ModalHeader";
 import { fetchCosmetics, InsufficientCurrency } from "./Cosmetics";
 import { crazyGamesSDK } from "./CrazyGamesSDK";
 import { JoinLobbyEvent } from "./Main";
+import "./mineclash/HostStakeField";
+import {
+  createStakeLobby,
+  StakeCreateError,
+  stakeErrorText,
+} from "./mineclash/StakeApi";
 import { terrainMapFileLoader } from "./TerrainMapFileLoader";
 import { UserSettings } from "./UserSettings";
 import {
@@ -123,6 +131,10 @@ export class HostLobbyModal extends BaseModal {
   // is always shown.
   @state() private canListPublicly: boolean = false;
   @state() private publiclyListed: boolean = false;
+  // mineclash #23: stake of this lobby (null = free) and the last server error
+  @state() private stakeCoins: number | null = null;
+  @state() private stakeError: string | null = null;
+  @state() private stakeBusy = false;
   @state() private showSubscriptionRequired: boolean = false;
   @state() private showListLobbyDialog: boolean = false;
   // Server timestamp when the listed lobby auto-starts (from lobby info).
@@ -651,6 +663,13 @@ export class HostLobbyModal extends BaseModal {
                 ${translateText("host_modal.settings_locked_listed")}
               </div>`
             : nothing}
+          <host-stake-field
+            .applied=${this.stakeCoins}
+            .serverError=${this.stakeError}
+            .busy=${this.stakeBusy}
+            @stake-apply=${(e: CustomEvent<{ coins: number | null }>) =>
+              void this.applyStake(e.detail.coins)}
+          ></host-stake-field>
           <!-- Players joined a listed lobby for its advertised settings, so
                they are frozen (the server rejects changes too). -->
           <game-config-settings
@@ -1070,6 +1089,8 @@ export class HostLobbyModal extends BaseModal {
     this.hostCheatStartingGold = false;
     this.hostCheatStartingGoldValue = undefined;
     this.publiclyListed = false;
+    this.stakeCoins = null;
+    this.stakeError = null;
     this.showSubscriptionRequired = false;
     this.showListLobbyDialog = false;
     this.queued = false;
@@ -1571,7 +1592,53 @@ export class HostLobbyModal extends BaseModal {
     this.putGameConfig();
   }
 
+  // mineclash #23: set / remove the stake = create a fresh lobby (a stake
+  // lobby is public from the start), hand the host over, push the settings.
+  private async applyStake(coins: number | null) {
+    if (this.stakeBusy) return;
+    this.stakeBusy = true;
+    this.stakeError = null;
+    try {
+      const token = await getPlayToken();
+      const next =
+        coins === null
+          ? (await createLobby()).lobby.gameID
+          : (await createStakeLobby(coins, token, ClientEnv.serverHttpBase()))
+              .gameID;
+      if (!isValidGameID(next)) throw new Error("invalid lobby id");
+      this.leaveLobby();
+      this.lobbyId = next;
+      this.stakeCoins = coins;
+      this.publiclyListed = coins !== null;
+      if (coins !== null && this.teamCount === HumansVsNations) {
+        this.teamCount = 2;
+      }
+      this.updateLobbyHistory(await this.constructUrl());
+      this.dispatchEvent(
+        new CustomEvent("join-lobby", {
+          detail: {
+            gameID: next,
+            source: "host",
+            creatorToken: token,
+          } as JoinLobbyEvent,
+          bubbles: true,
+          composed: true,
+        }),
+      );
+      this.putGameConfig();
+    } catch (e) {
+      this.stakeError =
+        e instanceof StakeCreateError
+          ? stakeErrorText(e.code)
+          : translateText("mineclash.stake_unavailable");
+    } finally {
+      this.stakeBusy = false;
+    }
+  }
+
   private async handleTeamCountSelection(value: TeamCountConfig) {
+    // mineclash #23: Humans vs Nations only without a stake.
+    if (this.stakeCoins !== null && value === HumansVsNations) return;
     this.teamCount = value;
     this.putGameConfig();
   }

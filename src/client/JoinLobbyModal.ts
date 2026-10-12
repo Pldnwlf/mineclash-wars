@@ -36,6 +36,7 @@ import "./components/LobbyPlayerView";
 import { inviteFriendsButton } from "./components/ui/InviteFriendsButton";
 import { DEFAULT_TITLE_CLASS, modalHeader } from "./components/ui/ModalHeader";
 import { lobbyStakeInfo, renderLobbyStake } from "./mineclash/LobbyStakePanel";
+import { cachedRate } from "./mineclash/StakeApi";
 import { openReplayViewer } from "./replay/ReplayEntry";
 import { nationsConfigToSlider } from "./utilities/GameConfigHelpers";
 import {
@@ -796,9 +797,11 @@ export class JoinLobbyModal extends BaseModal {
       ${this.renderLobbyFacts()} ${this.renderDisabledUnits()}
       ${this.renderHostCheats()}
       ${renderLobbyStake(
-        lobbyStakeInfo(c),
-        this.players.filter((p) => !p.spectator).length,
-        c.donateGold === true,
+        lobbyStakeInfo(
+          c,
+          this.players.filter((p) => !p.spectator).length,
+          cachedRate(),
+        ),
       )}
     `;
   }
