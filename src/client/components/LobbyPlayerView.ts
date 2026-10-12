@@ -46,6 +46,10 @@ export class LobbyTeamView extends LitElement {
   @property({ type: String }) currentClientID: string = "";
   @property({ attribute: "team-count" }) teamCount: TeamCountConfig = 2;
   @property({ type: Function }) onKickPlayer?: (clientID: string) => void;
+  // mineclash #20: only set for the host; shows "hand over host" per player.
+  @property({ type: Function }) onTransferHost?: (clientID: string) => void;
+  // mineclash #20: rotation lobbies assign teams randomly, so no preview.
+  @property({ type: Boolean }) randomTeams: boolean = false;
   @property({ type: Function }) onToggleNameReveal?: (clientID: string) => void;
   @property({ type: Array }) nameReveals: string[] = [];
   @property({ type: Boolean }) anonymizeNames: boolean = false;
@@ -224,39 +228,51 @@ export class LobbyTeamView extends LitElement {
             >
               ${this.renderLevelBadge(client, listSlot)}${displayName}
               ${this.renderVerifiedBadge(client)}
-              ${this.renderFriendBadge(client)}
+              ${this.renderFriendBadge(client)} ${this.renderCrown(client)}
+              ${this.renderTransferHost(client)}
             </div>`;
           },
         )}
       </div>
-      <div class="flex-1 flex flex-col gap-3 md:gap-4 md:pr-1">
-        <div>
-          <div class="font-semibold text-gray-200 mb-1 text-sm">
-            ${translateText("host_modal.assigned_teams")}
-          </div>
-          <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
-            ${repeat(
-              active,
-              (p) => p.team,
-              (preview) => this.renderTeamCard(preview, false),
-            )}
-          </div>
-        </div>
-        <div>
-          ${empty.length > 0
-            ? html`<div class="font-semibold text-gray-200 mb-1 text-sm">
-                ${translateText("host_modal.empty_teams")}
-              </div>`
-            : ""}
-          <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
-            ${repeat(
-              empty,
-              (p) => p.team,
-              (preview) => this.renderTeamCard(preview, true),
-            )}
-          </div>
-        </div>
-      </div>
+      ${this.randomTeams
+        ? html`<div
+            data-test-random-teams
+            class="flex-1 text-sm italic text-gray-300 self-center"
+          >
+            ${translateText("host_modal.teams_random")}
+          </div>`
+        : html`<div class="flex-1 flex flex-col gap-3 md:gap-4 md:pr-1">
+            <div>
+              <div class="font-semibold text-gray-200 mb-1 text-sm">
+                ${translateText("host_modal.assigned_teams")}
+              </div>
+              <div
+                class="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3"
+              >
+                ${repeat(
+                  active,
+                  (p) => p.team,
+                  (preview) => this.renderTeamCard(preview, false),
+                )}
+              </div>
+            </div>
+            <div>
+              ${empty.length > 0
+                ? html`<div class="font-semibold text-gray-200 mb-1 text-sm">
+                    ${translateText("host_modal.empty_teams")}
+                  </div>`
+                : ""}
+              <div
+                class="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3"
+              >
+                ${repeat(
+                  empty,
+                  (p) => p.team,
+                  (preview) => this.renderTeamCard(preview, true),
+                )}
+              </div>
+            </div>
+          </div>`}
     </div>`;
   }
 
@@ -272,6 +288,35 @@ export class LobbyTeamView extends LitElement {
         : "0.35"};"
     >
       👁
+    </button>`;
+  }
+
+  // mineclash #20: crown for the host, "hand over" button for the host only.
+  private renderCrown(client: ClientInfo) {
+    return client.clientID === this.lobbyCreatorClientID
+      ? html`<span
+          class="host-badge"
+          title=${translateText("host_modal.host_badge")}
+          data-test-host-crown
+          >👑</span
+        >`
+      : html``;
+  }
+
+  private renderTransferHost(client: ClientInfo) {
+    if (
+      !this.onTransferHost ||
+      client.clientID === this.lobbyCreatorClientID ||
+      this.isCurrentPlayer(client)
+    ) {
+      return html``;
+    }
+    return html`<button
+      data-test-transfer-host
+      class="ml-1 px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[10px] font-bold uppercase tracking-wider text-white"
+      @click=${() => this.onTransferHost?.(client.clientID)}
+    >
+      ${translateText("host_modal.transfer_host")}
     </button>`;
   }
 
@@ -292,10 +337,9 @@ export class LobbyTeamView extends LitElement {
             ${this.renderFriendBadge(client)}</span
           >
           ${this.renderRevealToggle(client.clientID)}
+          ${this.renderCrown(client)} ${this.renderTransferHost(client)}
           ${client.clientID === this.lobbyCreatorClientID
-            ? html`<span class="host-badge"
-                >(${translateText("host_modal.host_badge")})</span
-              >`
+            ? html``
             : this.onKickPlayer
               ? html`<button
                   class="remove-player-btn"
@@ -383,10 +427,9 @@ export class LobbyTeamView extends LitElement {
                       ${this.renderFriendBadge(p)}
                     </span>
                     ${this.renderRevealToggle(p.clientID)}
+                    ${this.renderCrown(p)} ${this.renderTransferHost(p)}
                     ${p.clientID === this.lobbyCreatorClientID
-                      ? html`<span class="ml-2 text-[11px] text-green-300"
-                          >(${translateText("host_modal.host_badge")})</span
-                        >`
+                      ? html``
                       : this.onKickPlayer
                         ? html`<button
                             class="remove-player-btn ml-2"

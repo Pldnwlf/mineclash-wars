@@ -178,6 +178,23 @@ export class HostLobbyModal extends BaseModal {
     }
     this.lobbyStartAt = lobby.startsAt ?? null;
     this.lobbyCreatorClientID = lobby.lobbyCreatorClientID ?? "";
+    // mineclash #20: the host role moved to someone else -> Main swaps this
+    // view for the plain lobby view (the server no longer accepts our
+    // start/settings intents anyway).
+    if (
+      event.myClientID &&
+      this.lobbyCreatorClientID &&
+      this.lobbyCreatorClientID !== event.myClientID
+    ) {
+      this.dispatchEvent(
+        new CustomEvent("host-handed-over", {
+          detail: { lobbyInfo: lobby },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+      return;
+    }
     if (lobby.clients) {
       this.clients = lobby.clients;
     }
@@ -768,6 +785,7 @@ export class HostLobbyModal extends BaseModal {
             .currentClientID=${this.lobbyCreatorClientID}
             .teamCount=${this.teamCount}
             .nationCount=${this.nations}
+            .onTransferHost=${(clientID: string) => this.transferHost(clientID)}
             .onKickPlayer=${this.publiclyListed
               ? undefined
               : (clientID: string) => this.kickPlayer(clientID)}
@@ -1737,6 +1755,17 @@ export class HostLobbyModal extends BaseModal {
 
     this.dispatchEvent(
       new CustomEvent("toggle_game_start_timer", {
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  // mineclash #20
+  private transferHost(clientID: string) {
+    this.dispatchEvent(
+      new CustomEvent("transfer-host", {
+        detail: { target: clientID },
         bubbles: true,
         composed: true,
       }),

@@ -470,6 +470,25 @@ export class GameServer {
         return finish({ status: 200 });
       }
 
+      // mineclash #20: host handover. The host role is just creatorPersistentID,
+      // so start/settings rights follow it; lobby_info carries the new crown.
+      case "transfer_host": {
+        const target = this.clients
+          .players()
+          .find((c) => c.clientID === stamped.targetClientID);
+        if (target === undefined || target.clientID === stamped.clientID) {
+          return finish({ status: 404, error: "no valid player to hand over" });
+        }
+        this.creatorPersistentID = target.persistentID;
+        this.log.info("host transferred", {
+          from: stamped.clientID,
+          to: target.clientID,
+          gameID: this.id,
+        });
+        this.broadcastLobbyInfo();
+        return finish({ status: 200 });
+      }
+
       case "update_game_config": {
         this.updateGameConfig(stamped.config);
         return finish({ status: 200 });
@@ -880,12 +899,14 @@ export class GameServer {
     this.clients.forgetReconnect(client);
     // Close lobby when host leaves before game starts: without a host it can
     // never start. phase() reports Finished once ended, so GameManager's next
-    // tick prunes it. A listed lobby carries on without its host: it starts
-    // on its listing deadline (or the queue's countdown), and the players who
-    // joined it from the lobby browser keep their game.
+    // tick prunes it.
+    // mineclash #20: also for listed lobbies (stake custom lobbies are always
+    // listed) - no handover means the lobby closes. Rotation lobbies have no
+    // creator, so they are untouched.
+    // mineclash #23 hook: release all stake holds of this lobby here.
     if (
       !this.isPublic() &&
-      !this.isListed() &&
+      this.creatorPersistentID !== undefined &&
       client.persistentID === this.creatorPersistentID
     ) {
       this.log.info("Host left, closing lobby", {

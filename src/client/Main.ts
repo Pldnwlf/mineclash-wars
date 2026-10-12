@@ -70,6 +70,7 @@ import { loadModal, prefetchModals, whenModalLoaded } from "./LazyModals";
 import {
   SendKickPlayerIntentEvent,
   SendToggleGameStartTimer,
+  SendTransferHostIntentEvent,
   SendUpdateGameConfigIntentEvent,
 } from "./LobbyEvents";
 import type { MatchmakingModal, MatchmakingMode } from "./Matchmaking";
@@ -205,6 +206,8 @@ declare global {
   interface DocumentEventMap {
     "join-lobby": CustomEvent<JoinLobbyEvent>;
     "kick-player": CustomEvent;
+    "transfer-host": CustomEvent; // mineclash #20
+    "host-handed-over": CustomEvent; // mineclash #20
     toggle_game_start_timer: CustomEvent;
     "join-changed": CustomEvent;
     "open-matchmaking": CustomEvent<{ mode?: MatchmakingMode } | undefined>;
@@ -594,6 +597,23 @@ class Client {
     });
     document.addEventListener("leave-lobby", this.handleLeaveLobby.bind(this));
     document.addEventListener("kick-player", this.handleKickPlayer.bind(this));
+    // mineclash #20: host handover (button in the player list)
+    document.addEventListener("transfer-host", (e) =>
+      this.eventBus?.emit(new SendTransferHostIntentEvent(e.detail.target)),
+    );
+    // The host modal saw the host role move to someone else: continue as a
+    // normal lobby member (no rejoin, only the view changes).
+    document.addEventListener("host-handed-over", (e) => {
+      const lobbyInfo = e.detail.lobbyInfo;
+      this.loadedHostModal()?.closeWithoutLeaving();
+      void loadModal("join-lobby-modal").then(() => {
+        window.showPage?.("page-join-lobby");
+        this.loadedJoinModal()?.open({
+          lobbyId: lobbyInfo.gameID,
+          lobbyInfo,
+        });
+      });
+    });
     document.addEventListener(
       "toggle_game_start_timer",
       this.handleToggleGameStartTimer.bind(this),

@@ -9,6 +9,11 @@ export class SendKickPlayerIntentEvent implements GameEvent {
   constructor(public readonly target: string) {}
 }
 
+// mineclash #20: the host hands the host role to another player.
+export class SendTransferHostIntentEvent implements GameEvent {
+  constructor(public readonly target: string) {}
+}
+
 export class SendUpdateGameConfigIntentEvent implements GameEvent {
   constructor(public readonly config: GameConfigPatch) {}
 }

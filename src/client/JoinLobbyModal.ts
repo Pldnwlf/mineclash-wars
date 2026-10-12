@@ -21,7 +21,6 @@ import {
   renderDuration,
   translateText,
 } from "../client/Utils";
-import { getApiBase } from "./Api";
 import { crazyGamesSDK } from "./CrazyGamesSDK";
 import { SendSpectateEvent } from "./LobbyEvents";
 import { PublicLobbySocket } from "./LobbySocket";
@@ -36,6 +35,7 @@ import { GameStartAlertController } from "./components/GameStartAlertController"
 import "./components/LobbyPlayerView";
 import { inviteFriendsButton } from "./components/ui/InviteFriendsButton";
 import { DEFAULT_TITLE_CLASS, modalHeader } from "./components/ui/ModalHeader";
+import { lobbyStakeInfo, renderLobbyStake } from "./mineclash/LobbyStakePanel";
 import { openReplayViewer } from "./replay/ReplayEntry";
 import { nationsConfigToSlider } from "./utilities/GameConfigHelpers";
 import {
@@ -166,6 +166,46 @@ export class JoinLobbyModal extends BaseModal {
     });
   }
 
+  // mineclash #20: the host role can arrive by handover. Settings stay with
+  // the host modal; here the new host can only start (or cancel the start).
+  private iAmHost(): boolean {
+    return (
+      this.isPrivateLobby() &&
+      this.currentClientID !== "" &&
+      this.lobbyCreatorClientID === this.currentClientID
+    );
+  }
+
+  private transferHost(clientID: string) {
+    this.dispatchEvent(
+      new CustomEvent("transfer-host", {
+        detail: { target: clientID },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private renderStartButton() {
+    if (!this.iAmHost() || this.isConnecting) return html``;
+    return html`<button
+      data-test-start-button
+      class="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest bg-malibu-blue text-white"
+      @click=${() => {
+        this.dispatchEvent(
+          new CustomEvent("toggle_game_start_timer", {
+            bubbles: true,
+            composed: true,
+          }),
+        );
+      }}
+    >
+      ${this.lobbyStartAt === null
+        ? translateText("game_settings.start")
+        : translateText("common.cancel")}
+    </button>`;
+  }
+
   // Play/Spectate switch. Hidden once the game is running: the player list is
   // frozen at start, so the server would refuse to seat anyone new and the
   // control would do nothing.
@@ -256,6 +296,11 @@ export class JoinLobbyModal extends BaseModal {
                         .clients=${this.players}
                         .lobbyCreatorClientID=${hostClientID}
                         .currentClientID=${this.currentClientID}
+                        .randomTeams=${this.gameConfig?.mineclashRules !==
+                        undefined}
+                        .onTransferHost=${this.iAmHost()
+                          ? (clientID: string) => this.transferHost(clientID)
+                          : undefined}
                         .anonymizeNames=${this.gameConfig?.anonymizeNames ??
                         false}
                         .teamCount=${this.gameConfig?.playerTeams ?? 2}
@@ -285,7 +330,7 @@ export class JoinLobbyModal extends BaseModal {
                 >
                 <span class="text-sm font-bold text-white">${statusLabel}</span>
               </div>
-              ${this.renderSpectateToggle()}
+              ${this.renderSpectateToggle()} ${this.renderStartButton()}
               ${maxPlayers > 0
                 ? html`
                     <div
@@ -748,8 +793,44 @@ export class JoinLobbyModal extends BaseModal {
             </div>`
           : html``}
       </div>
-      ${this.renderDisabledUnits()} ${this.renderHostCheats()}
+      ${this.renderLobbyFacts()} ${this.renderDisabledUnits()}
+      ${this.renderHostCheats()}
+      ${renderLobbyStake(
+        lobbyStakeInfo(c),
+        this.players.filter((p) => !p.spectator).length,
+        c.donateGold === true,
+      )}
     `;
+  }
+
+  // mineclash #20: mode, difficulty, bots and nations are always shown (the
+  // tags above only list what differs from the defaults).
+  private renderLobbyFacts(): TemplateResult {
+    const c = this.gameConfig;
+    if (!c) return html``;
+    const nations =
+      c.nations === "disabled"
+        ? translateText("common.disabled")
+        : String(
+            nationsConfigToSlider(c.nations ?? "default", this.nationCount),
+          );
+    const fact = (label: string, value: string) =>
+      html`<div class="px-3 py-1 rounded-lg bg-white/5 border border-white/10">
+        <span
+          class="text-[10px] font-bold uppercase tracking-widest text-white/40"
+          >${label.replace(/[:：\s]+$/u, "")}</span
+        >
+        <span class="ml-1 text-sm font-bold text-white">${value}</span>
+      </div>`;
+    return html`<div data-test-lobby-facts class="flex flex-wrap gap-2 mb-4">
+      ${fact(translateText("host_modal.mode"), getGameModeLabel(c))}
+      ${fact(
+        translateText("difficulty.difficulty"),
+        translateText(`difficulty.${c.difficulty.toLowerCase()}`),
+      )}
+      ${fact(translateText("game_settings.bots"), String(c.bots))}
+      ${fact(translateText("game_settings.nations"), nations)}
+    </div>`;
   }
 
   private renderDisabledUnits(): TemplateResult {
@@ -792,7 +873,8 @@ export class JoinLobbyModal extends BaseModal {
             const name = key ? translateText(key) : unit;
             return html`
               <span
-                class="px-2 py-1 bg-red-500/20 text-red-200 text-xs rounded font-bold border border-red-500/30"
+                data-test-disabled-unit
+                class="px-2 py-1 bg-red-500/20 text-red-200 text-xs rounded font-bold border border-red-500/30 line-through"
               >
                 ${name}
               </span>
