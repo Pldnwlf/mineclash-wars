@@ -20,6 +20,9 @@ interface LobbySocketOptions {
   // Fired at most once, when the server advertises a different build commit
   // than this bundle — i.e. a new version deployed while this tab was open.
   onUpdateAvailable?: () => void;
+  // mineclash #41: every full snapshot says whether the server drains for a
+  // deploy ("update soon" banner).
+  onDraining?: (draining: boolean) => void;
   // Fired when reconnecting reaches maxWsAttempts, once per outage. The
   // socket keeps trying after that, at GAVE_UP_RETRY_MS instead of
   // reconnectDelay, so a caller showing "unavailable" recovers on its own.
@@ -56,6 +59,7 @@ export class PublicLobbySocket {
   private readonly maxWsAttempts: number;
   private readonly onUpdateAvailable?: () => void;
   private readonly onGaveUp?: () => void;
+  private readonly onDraining?: (draining: boolean) => void;
   private updateAvailableFired = false;
 
   constructor(
@@ -66,6 +70,7 @@ export class PublicLobbySocket {
     this.maxWsAttempts = options?.maxWsAttempts ?? 3;
     this.onUpdateAvailable = options?.onUpdateAvailable;
     this.onGaveUp = options?.onGaveUp;
+    this.onDraining = options?.onDraining;
   }
 
   // `refreshList` is for a start the player asked for after a failure: the
@@ -225,6 +230,7 @@ export class PublicLobbySocket {
       if (message.type === "full") {
         this.checkServerCommit(message.gitCommit);
         this.checkDeploymentActive(message.active);
+        this.onDraining?.(message.draining === true);
         this.lastFull = {
           serverTime: message.serverTime,
           games: message.games,

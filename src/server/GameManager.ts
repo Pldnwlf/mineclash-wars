@@ -14,6 +14,7 @@ import { Logger } from "winston";
 import WebSocket from "ws";
 import { Client } from "./Client";
 import { GamePhase, GameServer, JoinResult } from "./GameServer";
+import { drainMaxMatchMs } from "./mineclash/MineclashDrain";
 import {
   noopMatchTelemetryEmitter,
   type MatchTelemetryEmitter,
@@ -21,6 +22,8 @@ import {
 
 export class GameManager {
   private games: Map<GameID, GameServer> = new Map();
+  // mineclash #41: set by the master's drain broadcast (startDrain).
+  private drainStartedAt: number | null = null;
 
   constructor(
     private log: Logger,
@@ -28,6 +31,17 @@ export class GameManager {
     private readonly telemetryBuildHash: string = "DEV",
   ) {
     setInterval(() => this.tick(), 1000);
+  }
+
+  // mineclash #41: idempotent. From now on no game is created, unstarted
+  // lobbies are closed on the next tick (#23: releases their holds) and
+  // matches still running after DRAIN_MAX_MATCH_MINUTES are aborted.
+  public startDrain(): void {
+    this.drainStartedAt ??= Date.now();
+  }
+
+  public isDraining(): boolean {
+    return this.drainStartedAt !== null;
   }
 
   public game(id: GameID): GameServer | null {
@@ -74,6 +88,10 @@ export class GameManager {
     publicGameType?: PublicGameType,
     matchmakingTeams?: string[][],
   ): GameServer | null {
+    if (this.drainStartedAt !== null) {
+      this.log.warn("cannot create game, server is draining", { gameID: id });
+      return null;
+    }
     if (this.games.has(id)) {
       this.log.warn("cannot create game, id already exists", { gameID: id });
       return null;
@@ -151,8 +169,18 @@ export class GameManager {
 
   tick() {
     const active = new Map<GameID, GameServer>();
+    const overCap =
+      this.drainStartedAt !== null &&
+      Date.now() > this.drainStartedAt + drainMaxMatchMs();
     for (const [id, game] of this.games) {
       game.pruneStaleClients();
+      if (
+        this.drainStartedAt !== null &&
+        game.phase() !== GamePhase.Finished &&
+        (overCap || (game.phase() === GamePhase.Lobby && !game.hasStarted()))
+      ) {
+        game.abortForDrain();
+      }
       const phase = game.phase();
       if (phase === GamePhase.Lobby) {
         game.maybeAutoStartListed();

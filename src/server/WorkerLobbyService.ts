@@ -57,6 +57,8 @@ export class WorkerLobbyService {
   // ranked check-in loop so a draining server stops offering matches too
   // (RankedCheckin.ts, OPE-469).
   private deploymentActive = true;
+  // mineclash #41: master said the server drains for a deploy.
+  private draining = false;
 
   constructor(
     private readonly server: http.Server,
@@ -79,7 +81,12 @@ export class WorkerLobbyService {
    * from its master behaves as it always has.
    */
   isDeploymentActive(): boolean {
-    return this.deploymentActive;
+    // mineclash #41: a draining server also stops ranked matchmaking.
+    return this.deploymentActive && !this.draining;
+  }
+
+  isDraining(): boolean {
+    return this.draining;
   }
 
   /** Browsers currently connected to this worker's /lobbies socket. */
@@ -131,6 +138,11 @@ export class WorkerLobbyService {
           this.deploymentActive = msg.active ?? true;
           this.lastFullGameIds = null;
         }
+        if ((msg.draining ?? false) !== this.draining) {
+          this.draining = msg.draining ?? false;
+          this.lastFullGameIds = null;
+        }
+        if (this.draining) this.gm.startDrain();
         this.lastPublicGames = msg.publicGames;
         // Forward message to all clients
         this.broadcastLobbiesToClients(msg.publicGames);
@@ -330,6 +342,7 @@ export class WorkerLobbyService {
               games: this.sanitizeGames(this.lastPublicGames.games),
               gitCommit: ServerEnv.gitCommit(),
               active: this.deploymentActive,
+              draining: this.draining ? true : undefined,
             } satisfies PublicLobbyMessage),
           );
         }
@@ -392,6 +405,7 @@ export class WorkerLobbyService {
         games: sanitizedGames,
         gitCommit: ServerEnv.gitCommit(),
         active: this.deploymentActive,
+        draining: this.draining ? true : undefined,
       };
       this.lastFullGameIds = fingerprint;
     } else {

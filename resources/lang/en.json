@@ -1298,7 +1298,8 @@
     "duplicate_session": "Kicked from game (you may have been playing on another tab)",
     "host_left": "The host has left the lobby.",
     "lobby_creator": "Kicked by lobby creator",
-    "match_cancelled": "Match cancelled: a player failed to connect. You have not lost any ELO."
+    "match_cancelled": "Match cancelled: a player failed to connect. You have not lost any ELO.",
+    "server_update": "The server is being updated. This lobby or match was closed. Stakes are refunded."
   },
   "lang": {
     "en": "English",
@@ -1635,6 +1636,7 @@
     "stake_title": "Stake and pot",
     "threshold": "Win: {percent} %",
     "threshold_overtime": "Win: {percent} % · Overtime",
+    "update_soon": "Update coming soon: no new matches start, running matches finish first.",
     "win_1": "Only humans can win. Nations and bots do not count. The last human with territory wins.",
     "win_2": "A human also wins with 80 % of the land. From minute 15 overtime starts and the needed share drops by 1 % per minute. At minute 25 (70 %) the match ends and the human with the most land wins.",
     "win_3": "A tie splits the pot equally. In team modes the winning team shares equally.",

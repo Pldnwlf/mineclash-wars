@@ -322,6 +322,8 @@ export class GameModeSelector extends LitElement {
   // The socket ran out of fast attempts and is only re-dialing slowly;
   // cleared by the next start() or snapshot.
   @state() private feedGaveUp = false;
+  // mineclash #41: server drains for a deploy.
+  @state() private draining = false;
   // Held for the same cooldown as the other Retry affordances, on this
   // component's own clock: refreshServerList fires a real request per press
   // (past its 1s floor), so this is what stops a player leaning on it.
@@ -334,6 +336,7 @@ export class GameModeSelector extends LitElement {
     (lobbies) => this.handleLobbiesUpdate(lobbies),
     {
       onUpdateAvailable: () => this.handleUpdateAvailable(),
+      onDraining: (d) => (this.draining = d), // mineclash #41
       onGaveUp: () => {
         // Nothing is loading any more, and cards from a feed that has died
         // are lobbies the player cannot join.
@@ -668,6 +671,13 @@ export class GameModeSelector extends LitElement {
       <div
         class="flex flex-col gap-4 w-full px-4 pb-4 mx-auto sm:px-0 sm:pb-0 sm:grid sm:grid-cols-[2fr_1fr] sm:grid-rows-[auto_min(24rem,40vh)_auto_auto] desktop:sm:grid-rows-[auto_40vh_auto_auto] sm:[reading-flow:grid-rows]"
       >
+        ${this.draining
+          ? html`<div
+              class="sm:col-span-2 sm:row-start-1 rounded-lg bg-amber-500/20 border border-amber-400/40 px-4 py-2 text-center text-sm text-amber-200"
+            >
+              ${translateText("mineclash.update_soon")}
+            </div>`
+          : nothing}
         <ios-add-to-home-screen-banner
           class="no-crazygames [&:empty]:hidden sm:col-span-2 sm:row-start-1"
         ></ios-add-to-home-screen-banner>

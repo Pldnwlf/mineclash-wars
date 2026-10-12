@@ -90,6 +90,9 @@ const MasterLobbiesBroadcastSchema = z.object({
   // deployment learn to reload (see PublicLobbyFullSchema.active). Optional
   // only for old fixtures; the master always sends it, absent means active.
   active: z.boolean().optional(),
+  // mineclash #41: deploy drain. Workers close unstarted lobbies, refuse new
+  // games and abort matches past the drain cap. Absent means not draining.
+  draining: z.boolean().optional(),
 });
 
 // Master sends a message to worker to schedule a new public game/lobby.

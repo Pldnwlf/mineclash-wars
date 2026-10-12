@@ -1,10 +1,4 @@
 {
-  "lang": {
-    "en": "German",
-    "lang_code": "de",
-    "native": "Deutsch",
-    "svg": "de"
-  },
   "account_modal": {
     "cancel_subscription": "Abbrechen",
     "cancel_subscription_confirm": "Ihr Abonnement kündigen? Es bleibt bis zum Ende des aktuellen Abrechnungszeitraumes aktiv.",
@@ -83,6 +77,7 @@
     "reward_daily": "Tägliche Abonnementbelohnung",
     "reward_signup_bonus": "Anmeldebonus für Abonnements",
     "sign_in_desc": "Melde dich an, um deine Statistiken und Fortschritt zu speichern",
+    "sub_granted_ends_on": "Freier Zugang endet {date}",
     "sub_granted_from_purchase": "Kostenlos in deinem Steam‑Kauf enthalten. Es wird nicht abgerechnet und erneuert sich nicht, daher gibt es nichts zu verwalten oder zu kündigen.",
     "sub_granted_indefinite": "Kostenloser Zugriff wurde deinem Account gewährt. Es wird nicht abgerechnet, daher gibt es nichts zu verwalten oder zu kündigen.",
     "sub_price_monthly": "{price}/Monat",
@@ -134,8 +129,7 @@
     "username_temporary_notice": "Dein Name wird von einem anderen Spieler bereits genommen. Wähle einen neuen — diese Umbenennung ist kostenlos.",
     "username_temporary_prompt": "Dein Benutzername wird von einem anderen Spieler bereits genommen. Wähle einen neuen — diese Umbenennung ist kostenlos.",
     "username_temporary_prompt_confirm": "Namen auswählen",
-    "username_title": "Benutzername",
-    "sub_granted_ends_on": "Freier Zugang endet {date}"
+    "username_title": "Benutzername"
   },
   "account_settings_modal": {
     "title": "Kontoeinstellung"
@@ -1209,7 +1203,14 @@
     "duplicate_session": "Du wurdest aus dem Spiel gekickt. (Du hast wahrscheinlich in einem anderen Tab gespielt)",
     "host_left": "Der Gastgeber hat die Lobby verlassen.",
     "lobby_creator": "Du wurdest vom Lobby-Ersteller aus dem Spiel gekickt.",
-    "match_cancelled": "Spiel abgebrochen: Ein Spieler konnte sich nicht verbinden. Du hast keine ELO verloren."
+    "match_cancelled": "Spiel abgebrochen: Ein Spieler konnte sich nicht verbinden. Du hast keine ELO verloren.",
+    "server_update": "Der Server wird aktualisiert. Diese Lobby bzw. dieses Match wurde beendet. Einsätze werden zurückerstattet."
+  },
+  "lang": {
+    "en": "German",
+    "lang_code": "de",
+    "native": "Deutsch",
+    "svg": "de"
   },
   "leaderboard": {
     "allies": "Verbündete",
@@ -1520,6 +1521,7 @@
     "stake_title": "Einsatz und Topf",
     "threshold": "Sieg: {percent} %",
     "threshold_overtime": "Sieg: {percent} % · Overtime",
+    "update_soon": "Update in Kürze: keine neuen Matches, laufende Matches werden fertig gespielt.",
     "win_1": "Nur Menschen können gewinnen. Nationen und Bots zählen nicht. Der letzte Mensch mit Gebiet gewinnt.",
     "win_2": "Ein Mensch gewinnt auch mit 80 % des Landes. Ab Minute 15 beginnt die Overtime, der nötige Anteil sinkt um 1 % pro Minute. Bei Minute 25 (70 %) ist Schluss und der Mensch mit dem meisten Land gewinnt.",
     "win_3": "Bei Gleichstand wird der Topf zu gleichen Teilen geteilt. In Team-Modi teilt das Gewinnerteam gleichmässig.",
@@ -2299,6 +2301,10 @@
     "ground_attack_desc": "Sende einen Bodenangriff auf den Pixel unter deinem Cursor.",
     "help_messages_desc": "Zeige kontextabhängige Tipps und Warnungen während des Spiels, wie zum Beispiel die Begrenzung der Warnung durch die Armee und allgemeine Ratschläge für das Spielen.",
     "help_messages_label": "Hilfemeldungen",
+    "hide_interface_desc": "Erlaubt der Taste, das ganze HUD im laufenden Match auszublenden",
+    "hide_interface_key_desc": "HUD komplett aus-/einblenden (Esc blendet es auch wieder ein)",
+    "hide_interface_key_label": "Taste: Interface ausblenden",
+    "hide_interface_label": "Interface ausblenden",
     "highlight_glow_strength_label": "Stärke hervorheben",
     "highlight_small_players_desc": "Füge kleinen Spielern einen Leuchteffekt hinzu, damit sie leichter zu finden sind.",
     "keybind_conflict_error": "Die Taste {key} ist bereits an eine andere Aktion gebunden.",
@@ -2351,10 +2357,6 @@
     "tab_keybinds": "Tastenbelegung",
     "title": "Einstellungen",
     "toggle_terrain": "Gelände anzeigen/verbergen",
-    "hide_interface_label": "Interface ausblenden",
-    "hide_interface_desc": "Erlaubt der Taste, das ganze HUD im laufenden Match auszublenden",
-    "hide_interface_key_label": "Taste: Interface ausblenden",
-    "hide_interface_key_desc": "HUD komplett aus-/einblenden (Esc blendet es auch wieder ein)",
     "toggle_view": "Ansicht umschalten",
     "toggle_view_desc": "Alternative Ansicht anzeigen (Gebiete/Länder)",
     "toggle_visibility": "Sichtbarkeit umschalten",
