@@ -1,6 +1,7 @@
 import {
   ErrorUpdate,
   GameUpdateType,
+  HashUpdate,
   WinUpdate,
 } from "@openfront/engine-api/game/GameUpdates";
 import { MapFiles } from "@openfront/engine-api/game/MapFiles";
@@ -19,6 +20,9 @@ export interface ReplayedWinner {
   allPlayersStats: AllPlayersStats;
   // The tick the simulation declared the result on; null if it never did.
   tick: number | null;
+  // mineclash #24: first turn whose recorded state checksum differs from the
+  // replay's (null = all recorded ones matched up to the result).
+  firstHashMismatch?: number | null;
 }
 
 /**
@@ -35,12 +39,15 @@ export async function replayWinner(
 ): Promise<ReplayedWinner> {
   let win: WinUpdate | null = null;
   let error: ErrorUpdate | null = null;
+  let tickHash: HashUpdate | null = null;
+  let firstHashMismatch: number | null = null;
   const runner = await createGameRunner(gameStart, undefined, map, (gu) => {
     if ("errMsg" in gu) {
       error = gu;
       return;
     }
     win ??= gu.updates[GameUpdateType.Win][0] ?? null;
+    tickHash = gu.updates[GameUpdateType.Hash][0] ?? null;
   });
   for (const turn of turns) {
     runner.addTurn(turn);
@@ -50,12 +57,24 @@ export async function replayWinner(
         `replay failed at turn ${turn.turnNumber}: ${err?.errMsg}\n${err?.stack}`,
       );
     }
+    // mineclash #24: compare with the checksum the clients agreed on.
+    const h = tickHash as HashUpdate | null;
+    if (
+      h !== null &&
+      h.tick === turn.turnNumber &&
+      turn.hash !== undefined &&
+      turn.hash !== null &&
+      h.hash !== turn.hash
+    ) {
+      firstHashMismatch ??= turn.turnNumber;
+    }
     if (win !== null) {
       const w = win as WinUpdate;
       return {
         winner: w.winner,
         allPlayersStats: w.allPlayersStats,
         tick: runner.game.ticks(),
+        firstHashMismatch,
       };
     }
   }
@@ -63,5 +82,6 @@ export async function replayWinner(
     winner: undefined,
     allPlayersStats: runner.game.stats().stats(),
     tick: null,
+    firstHashMismatch,
   };
 }
