@@ -5,6 +5,10 @@ import { GameRecord } from "@openfront/shared/WireSchemas";
 import { promises as fs } from "fs";
 import path from "path";
 import {
+  cleanupResults,
+  readResultSync,
+} from "./mineclash/MineclashResultStore";
+import {
   CLEANUP_INTERVAL_MS,
   FREE_RETENTION_MS,
   isStakeMatch,
@@ -105,7 +109,26 @@ export async function readHistory(
   return (await readLines(userFile(uuid)))
     .sort((a, b) => b.end - a.end)
     .filter((e) => !seen.has(e.id) && seen.add(e.id))
-    .slice(0, limit);
+    .slice(0, limit)
+    .map((e) => withPayout(e, uuid));
+}
+
+// mineclash #39: Einsatz/Netto/Status aus dem Ergebnis-File (reihenfolgefest:
+// Historie und Settle koennen in beliebiger Reihenfolge fertig werden).
+export function withPayout(e: HistoryEntry, uuid: string): HistoryEntry {
+  if (!e.stake) return e;
+  const r = readResultSync(e.id);
+  if (r.status === "none") return e;
+  const out: HistoryEntry = {
+    ...e,
+    stakeCoins: r.stakeCoins,
+    payoutStatus: r.status,
+  };
+  if (r.status === "refunded") out.netCoins = 0;
+  else if (r.status === "paid" && r.stakeCoins !== undefined)
+    out.netCoins =
+      (r.payouts?.find((p) => p.uuid === uuid)?.coins ?? 0) - r.stakeCoins;
+  return out;
 }
 
 /** GET /api/history: nur eigene, Gaeste 403. */
@@ -152,7 +175,10 @@ export async function cleanupHistory(now = Date.now()): Promise<number> {
 }
 
 export function startHistoryCleanup(): void {
-  const run = () => void cleanupHistory().catch(() => {});
+  const run = () => {
+    void cleanupHistory().catch(() => {});
+    void cleanupResults();
+  };
   run();
   setInterval(run, CLEANUP_INTERVAL_MS).unref();
 }

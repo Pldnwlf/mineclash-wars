@@ -29,6 +29,7 @@ import {
 import { crazyGamesSDK } from "../../CrazyGamesSDK";
 import { isDesktopShell } from "../../DesktopShell";
 import { Features } from "../../mineclash/Features";
+import "../../mineclash/ResultPanel"; // mineclash #39
 import { Platform } from "../../Platform";
 import { MAX_PRESTIGE, reachedLegendThisGame } from "../../Progression";
 import { resolveXpAccount } from "../../ProgressionAccount";
@@ -120,7 +121,7 @@ export class WinModal extends LitElement implements Controller {
             .gameType=${this.game?.config().gameConfig().gameType ?? null}
             @xp-legend=${this.onXpLegend}
           ></game-xp-panel>
-          ${this.innerHtml()}
+          ${this.renderStakeResult()}${this.innerHtml()}
         </div>
         <!-- Leaving is the quieter action, on the left; staying in the game
              is the main one, on the right. -->
@@ -332,6 +333,17 @@ export class WinModal extends LitElement implements Controller {
         }
       }
     </style>`;
+  }
+
+  // mineclash #39: stake result (own stake, pot, payout status)
+  private renderStakeResult() {
+    const stake = this.game?.config().gameConfig().mineclashStake?.coins;
+    if (!this.isVisible || !stake || !this.game.myPlayer()) return nothing;
+    if (this.game.config().isReplay()) return nothing;
+    return html`<mineclash-result
+      .gameID=${this.game.gameID()}
+      .stakeCoins=${stake}
+    ></mineclash-result>`;
   }
 
   innerHtml() {

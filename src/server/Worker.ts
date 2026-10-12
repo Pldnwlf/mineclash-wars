@@ -43,6 +43,7 @@ import { levelBadgeForPlayer } from "./LevelBadge";
 import { payForLobbyQueue, queueListedLobby } from "./LobbyQueuePayment";
 import { logger } from "./Logger";
 import { isGuestClaims, mineclashIdentity } from "./mineclash/Identity";
+import { readResult } from "./mineclash/MineclashResultStore";
 import { getWallet } from "./mineclash/MineclashWallet";
 import { resolveVerifiedJoin } from "./Privilege";
 
@@ -536,6 +537,10 @@ export async function startWorker() {
       log.error(`history read failed: ${e}`);
       res.status(500).json({ error: "History error" });
     }
+  });
+  // mineclash #39: Auszahlungsstatus eines Einsatz-Matches (nur UUIDs)
+  app.get("/api/mineclash/result/:gameId", async (req, res) => {
+    res.json(await readResult(req.params.gameId));
   });
   if (workerId === 0) {
     startArchiveCleanup();

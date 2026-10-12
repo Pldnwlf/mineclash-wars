@@ -29,6 +29,7 @@ import {
   SettleRequest,
   SettleRequestSchema,
 } from "./MineclashApi";
+import { writeFinal, writePending } from "./MineclashResultStore";
 
 const log = logger.child({ comp: "wallet" });
 
@@ -128,6 +129,7 @@ export interface WalletOptions {
 
 export class MineclashWallet {
   private readonly dir: string;
+  private readonly resultsDir: string;
   private readonly now: () => number;
   private readonly backoff: [number, number];
   // Master: erst nach serverStart; Worker forken erst danach (Master.ts).
@@ -141,6 +143,7 @@ export class MineclashWallet {
 
   constructor(private readonly o: WalletOptions) {
     this.dir = o.dir ?? settlesDir();
+    this.resultsDir = path.join(this.dir, "..", "results");
     this.now = o.now ?? Date.now;
     this.backoff = o.backoff ?? [1000, 60_000];
     this.ready = false;
@@ -295,6 +298,10 @@ export class MineclashWallet {
       void alertNachrechnung(`${problem}, Einsaetze zurueck`);
     }
     await this.persist({ request, createdAt: this.now() });
+    // mineclash #39: Ergebnis fuer den Endscreen ("wird geprueft")
+    await writePending(matchId, request, stakesByUuid, this.resultsDir).catch(
+      (e) => log.warn(`result pending failed: ${(e as Error).message}`),
+    );
     this.holds.delete(matchId);
     this.run(matchId);
   }
@@ -368,6 +375,20 @@ export class MineclashWallet {
           burned: r.burned,
           replayed: r.replayed,
         });
+        // mineclash #39: Endstand VOR dem Loeschen (ueberlebt Neustart)
+        const fin = await writeFinal(
+          matchId,
+          job.request,
+          r,
+          this.resultsDir,
+        ).catch((e) => {
+          log.warn(`result final failed: ${(e as Error).message}`);
+          return { mismatch: false };
+        });
+        if (fin.mismatch) {
+          log.error(`settle ${matchId}: Wallet-Antwort weicht von Regel ab`);
+          void alertAuszahlung("settle-antwort weicht von Regel ab");
+        }
         await fs.rm(this.file(matchId), { force: true });
         return;
       } catch (e) {
