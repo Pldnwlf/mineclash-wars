@@ -737,8 +737,7 @@
     "spawn_failed": {
       "description": "Automatische Spawn-Auswahl fehlgeschlagen. Du kannst dieses Spiel nicht spielen.",
       "title": "Spawn fehlgeschlagen"
-    },
-    "turnstile_error": "Verifizierungsfehler: {code}. Bitte aktualisiere und versuche es erneut."
+    }
   },
   "events_display": {
     "about_to_expire": "Deine Allianz mit {name} läuft bald ab!",
@@ -1276,16 +1275,13 @@
   },
   "main": {
     "account": "Account",
-    "clans": "Clans",
     "copyright": "©️ OpenFront™ und Mitwirkende",
     "create": "Lobby erstellen",
     "discord_avatar_alt": "Discord Profilbild",
     "github": "GitHub",
     "go_to_troubleshooting": "Gehe zu unserer Seite zur Fehlerbehebung",
     "help": "Hilfe",
-    "inventory": "Inventar",
     "join": "Lobby beitreten",
-    "leaderboard": "Rangliste",
     "login_discord": "Anmelden mit Discord",
     "login_google": "Mit Google anmelden",
     "login_steam": "Mit Steam anmelden",

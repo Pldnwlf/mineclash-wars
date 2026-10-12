@@ -12,6 +12,7 @@ import {
 // whose tests stub Api wholesale.
 import { getApiBase } from "./ApiBase";
 import { getAuthHeader } from "./Auth";
+import { Features } from "./mineclash/Features";
 
 // Player levels / XP. Every helper here fails closed: progression is purely
 // cosmetic, so any error hides the UI rather than surfacing a failure.
@@ -216,6 +217,7 @@ let progressionConfig: {
 // on at all (404 when it is off). Memoised for as long as the server says it
 // stays fresh; a failure is not, so a later caller can try again.
 export function fetchProgressionConfig(): Promise<ProgressionConfig | false> {
+  if (!Features.progression) return Promise.resolve(false); // mineclash #5
   if (
     progressionConfig !== null &&
     Date.now() - progressionConfig.at < PROGRESSION_CONFIG_TTL_MS

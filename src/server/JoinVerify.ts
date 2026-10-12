@@ -20,7 +20,7 @@ export type JoinVerifyResponse =
   | { status: "error"; reason: string };
 
 export type JoinVerifyPlan =
-  | { action: "reject" } // first join with no Turnstile token
+  | { action: "reject" } // unused since mineclash #5 (no Turnstile); kept for Worker.ts
   | { action: "skip" } // the verdict couldn't change anything
   | { action: "verify"; token: string | null };
 
@@ -67,10 +67,14 @@ export function planJoinVerify(args: {
     if (args.steamAuthed) {
       return { action: "verify", token: null };
     }
-    if (!args.turnstileToken) {
-      return { action: "reject" };
-    }
-    return { action: "verify", token: args.turnstileToken };
+    // mineclash #5: Turnstile is gone from the client; the bot check is
+    // replaced by the mineclash login / guest JWT (#21). A first join without
+    // a token is therefore no longer rejected, it is verified with a null
+    // token (name check only). A token a client still sends is forwarded.
+    return {
+      action: "verify",
+      token: args.turnstileToken === "" ? null : args.turnstileToken,
+    };
   }
   if (args.gameStarted || args.identityUnchanged) {
     return { action: "skip" };

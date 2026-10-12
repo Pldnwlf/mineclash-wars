@@ -11,11 +11,8 @@ import {
   PublicGameInfo,
   WireGameStartInfo,
 } from "@openfront/shared/WireSchemas";
-import { GameEnv } from "@openfront/shared/configuration/Env";
 import { ClientEnv } from "src/client/ClientEnv";
 import { renderNavVersion } from "src/client/GameVersion";
-import { adGatekeeper } from "./AdGatekeeper";
-import { loadAdmiral, onAdmiralMeasured } from "./Admiral";
 import { getUserMe, invalidateUserMe } from "./Api";
 import {
   getDesktopSessionState,
@@ -54,18 +51,15 @@ import {
   isDesktopShell,
   type DesktopUpdateState,
 } from "./DesktopShell";
-import "./FeaturedStream";
 import { loadGameClient, prefetchGameClient } from "./GameClientLoader";
 import "./GameModeSelector";
 import {
   GameModeSelector,
-  joinIsGateable,
   reportMultiplayerRefusal,
   shouldBlockJoin,
 } from "./GameModeSelector";
 import { GameStartingModal } from "./GameStartingModal";
 import type { HelpModal } from "./HelpModal";
-import "./HomepagePromos";
 import type { HostLobbyModal as HostPrivateLobbyModal } from "./HostLobbyModal";
 import { showInGameAlert, showInGameConfirm } from "./InGameModal";
 import type { JoinLobbyModal } from "./JoinLobbyModal";
@@ -122,14 +116,6 @@ import { steamSDK } from "./SteamSDK";
 import type { StoreModal } from "./Store";
 import { initTelemetry } from "./Telemetry";
 import type { TokenLoginModal } from "./TokenLoginModal";
-import {
-  requestTurnstileToken,
-  resolveTurnstileToken,
-  TURNSTILE_LOAD_FAILED_CODE,
-  TurnstileError,
-  type TurnstileApi,
-  type TurnstileToken,
-} from "./TurnstileToken";
 // Before the first userMeResponse, for the modals that load after it.
 import "./UserMeBroadcast";
 import { UserSettings } from "./UserSettings";
@@ -147,9 +133,6 @@ import {
 } from "./Utils";
 import { isReplayShellHost } from "./VersionedReplay";
 import "./components/BannedModal";
-import "./components/DesktopStatusBar";
-import "./components/MarketingConsentToast";
-import "./components/PurchaseNudgeModal";
 import "./mineclash/MineclashModals"; // mineclash #31
 import { classicReplayHref } from "./replay/ReplayEntry";
 import { parseReplayViewerHash } from "./replay/ReplayViewerRoute";
@@ -174,7 +157,6 @@ import "./styles/layout/header.css";
 
 declare global {
   interface Window {
-    turnstile?: TurnstileApi;
     adsEnabled: boolean;
     gtag?: (...args: any[]) => void;
     PageOS: {
@@ -356,8 +338,6 @@ class Client {
   // GroupTokenTracker for why a repeat must not re-emit.
   private readonly presenceGroup = new GroupTokenTracker();
 
-  private turnstileTokenPromise: Promise<TurnstileToken> | null = null;
-
   async initialize(): Promise<void> {
     // FIRST, ahead of consumeCreatorCodePath() and of handleUrl() below --
     // ahead of every history write this client performs. A page served under
@@ -447,19 +427,10 @@ class Client {
     // Register modals with the URL router. Lobby modals (join/host) and
     // matchmaking are intentionally omitted — they own their own URL state
     // (path-based) or none at all.
-    modalRouter.register("store", {
-      tag: "store-modal",
-      pageId: "page-item-store",
-    });
     modalRouter.register("settings", {
       tag: "user-setting",
       pageId: "page-settings",
     });
-    modalRouter.register("leaderboard", {
-      tag: "leaderboard-modal",
-      pageId: "page-leaderboard",
-    });
-    modalRouter.register("clan", { tag: "clan-modal", pageId: "page-clan" });
     modalRouter.register("account", {
       tag: "account-modal",
       pageId: "page-account",
@@ -467,7 +438,8 @@ class Client {
     // Profile-menu modals: popup style, so no pageId.
     modalRouter.register("account-settings", { tag: "account-settings-modal" });
     modalRouter.register("change-username", { tag: "change-username-modal" });
-    modalRouter.register("subscription", { tag: "subscription-modal" });
+    // mineclash #5: store/leaderboard/clan/ranked/inventory/subscription not
+    // registered (see mineclash/Features.ts).
     modalRouter.register("stats", {
       tag: "game-stats-modal",
       pageId: "page-stats",
@@ -492,10 +464,6 @@ class Client {
       tag: "single-player-modal",
       pageId: "page-single-player",
     });
-    modalRouter.register("ranked", {
-      tag: "ranked-modal",
-      pageId: "page-ranked",
-    });
     modalRouter.register("detailed-view", {
       tag: "detailed-view-modal",
       pageId: "page-detailed-view",
@@ -504,10 +472,6 @@ class Client {
       tag: "troubleshooting-modal",
       pageId: "page-troubleshooting",
     });
-    modalRouter.register("inventory", {
-      tag: "inventory-modal",
-      pageId: "page-inventory",
-    });
 
     // Kick the server-list fetch off here, before anything below awaits the
     // network, so it overlaps with the rest of boot: by the time a player
@@ -515,24 +479,6 @@ class Client {
     // never waits on a fetch (docs/MultiServer.md, "Server list v2"). It
     // never throws and keeps itself alive with a heartbeat afterwards.
     startServerListPolling();
-
-    // Prefetch turnstile token so it is available when the user joins a lobby.
-    // Desktop (Steam) has no Turnstile script and is server-side exempt, so
-    // skip it — otherwise getTurnstileToken() throws "Failed to load Turnstile
-    // script" after its load wait. Also skip on the versioned replay shells:
-    // the replay host may not be on the Turnstile site key's domain allowlist,
-    // so rendering the widget there just fails — and replays never
-    // send a token anyway (see getTurnstileToken below).
-    const turnstilePrefetch =
-      isDesktopShell() || isReplayShellHost(window.location.hostname)
-        ? null
-        : getTurnstileToken();
-    // A prefetch that fails is not an error anyone has asked about yet: the
-    // join path drops it and fetches once more (see getTurnstileToken below),
-    // and only that attempt alerts. Mark it handled here so a boot-time
-    // rejection nobody is awaiting yet does not surface as an unhandled one.
-    turnstilePrefetch?.catch(() => {});
-    this.turnstileTokenPromise = turnstilePrefetch;
 
     // Wait for components to render before setting version
     await customElements.whenDefined("mobile-nav-bar");
@@ -693,6 +639,7 @@ class Client {
       });
     });
 
+    // mineclash #5: store-modal is no longer in index.html (null).
     this.storeModal = document.getElementById("page-item-store") as StoreModal;
 
     window.addEventListener("showPage", (e: any) => {
@@ -737,26 +684,8 @@ class Client {
       } else {
         updateAccountNavButton(userMeResponse);
       }
-      const isAdFree =
-        userMeResponse !== false && userMeResponse.player?.adfree === true;
-      window.adsEnabled =
-        !isAdFree && !crazyGamesSDK.isOnCrazyGames() && !isDesktopShell();
-      // Ad-eligible users only: paid/adfree users must never load Admiral (its
-      // adblock popup fires autonomously once the payload runs). Start watching
-      // adblock state; once a blocker is ever detected the in-game ad is
-      // suppressed forever (persisted) — those users are highly ad-sensitive.
-      if (window.adsEnabled) {
-        loadAdmiral();
-        // Admiral's read is more reliable than our DOM bait, so use it as a
-        // fast initial signal. A blocker that whitelists this site still shows
-        // ads, so "blocked" means adblocking AND not whitelisted.
-        onAdmiralMeasured((res) => {
-          adGatekeeper.seed(
-            res.adblocking === true && res.whitelisted !== true,
-          );
-        });
-        adGatekeeper.start();
-      }
+      // mineclash #5: no ads (Admiral/AdGatekeeper not loaded).
+      window.adsEnabled = false;
       // Before the dispatch: <username-input> reads this store when it picks
       // the lapse notice's wording, and the record has to be current by then.
       const grantStoreBefore = parseSteamGrantStore(
@@ -2088,35 +2017,12 @@ class Client {
     }
   }
 
+  // mineclash #5: no Turnstile; the bot check is replaced by the mineclash
+  // login / guest JWT (#21), the server accepts joins without a token.
   private async getTurnstileToken(
-    lobby: JoinLobbyEvent,
+    _lobby: JoinLobbyEvent,
   ): Promise<string | null> {
-    if (
-      ClientEnv.env() === GameEnv.Dev ||
-      isDesktopShell() ||
-      // Single-player and replays: no server to verify a token against (and
-      // on the CDN replay shells Turnstile cannot load at all). Shared with
-      // the desktop gate so the exemption has one definition.
-      !joinIsGateable(lobby)
-    ) {
-      return null;
-    }
-
-    const prefetch = this.turnstileTokenPromise;
-    // Clear promise so a new token is fetched next time. Unconditional: a
-    // prefetch that rejected must not be waited on twice either.
-    this.turnstileTokenPromise = null;
-
-    return resolveTurnstileToken({
-      prefetch,
-      requestFresh: getTurnstileToken,
-      // Always request a new token on crazygames.
-      forceFresh: crazyGamesSDK.isOnCrazyGames(),
-      onError: (code) =>
-        void showInGameAlert(
-          translateText("error_modal.turnstile_error", { code }),
-        ),
-    });
+    return null;
   }
 }
 
@@ -2170,28 +2076,4 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", bootstrap);
 } else {
   bootstrap();
-}
-
-async function getTurnstileToken(): Promise<TurnstileToken> {
-  // Wait for Turnstile script to load (handles slow connections)
-  let attempts = 0;
-  while (window.turnstile === undefined && attempts < 100) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    attempts++;
-  }
-
-  const turnstile = window.turnstile;
-  if (turnstile === undefined) {
-    throw new TurnstileError(
-      TURNSTILE_LOAD_FAILED_CODE,
-      "Failed to load Turnstile script",
-    );
-  }
-
-  // The render/execute choreography (and why the callbacks go on render)
-  // lives in TurnstileToken.ts.
-  return requestTurnstileToken(turnstile, {
-    sitekey: ClientEnv.turnstileSiteKey(),
-    container: "#turnstile-container",
-  });
 }

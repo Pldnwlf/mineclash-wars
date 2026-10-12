@@ -3,7 +3,7 @@ import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import type { GameXpEligible } from "@openfront/shared/ApiSchemas";
 import { Pattern } from "@openfront/shared/CosmeticSchemas";
 import { EventBus } from "@openfront/shared/EventBus";
-import { html, LitElement, TemplateResult } from "lit";
+import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import {
   DESKTOP_TUTORIAL_VIDEO_URL,
@@ -28,6 +28,7 @@ import {
 } from "../../Cosmetics";
 import { crazyGamesSDK } from "../../CrazyGamesSDK";
 import { isDesktopShell } from "../../DesktopShell";
+import { Features } from "../../mineclash/Features";
 import { Platform } from "../../Platform";
 import { MAX_PRESTIGE, reachedLegendThisGame } from "../../Progression";
 import { resolveXpAccount } from "../../ProgressionAccount";
@@ -334,6 +335,7 @@ export class WinModal extends LitElement implements Controller {
   }
 
   innerHtml() {
+    if (!Features.winPromos) return nothing; // mineclash #5
     // The Steam desktop build has nothing to wishlist — fall through to the
     // other promos so the box is never empty.
     const canWishlist = !steamSDK.isOnSteam();
@@ -523,6 +525,7 @@ export class WinModal extends LitElement implements Controller {
       const game = this.game;
       // Spectators and replay viewers have no XP of their own.
       if (game.config().isReplay() || !game.myPlayer()) return;
+      if (!Features.progression) return; // mineclash #5
       const account = await resolveXpAccount();
       // /users/@me failed while there is a session: a signed-in player must
       // not be told to sign in over a network blip, so say nothing.
