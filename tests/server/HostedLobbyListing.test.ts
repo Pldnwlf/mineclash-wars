@@ -315,7 +315,8 @@ describe("host-left lobby teardown", () => {
     expect(gm.game("g-host-leaves")).toBeNull();
   });
 
-  it("keeps a listed lobby going when the host leaves", async () => {
+  // mineclash #20: no handover means the lobby closes, listed or not.
+  it("closes a listed lobby when the host leaves", async () => {
     const gm = new GameManager(mockLogger);
     const game = gm.createGame("g-listed-host-leaves", undefined, CREATOR)!;
     game.setListed(true);
@@ -327,12 +328,10 @@ describe("host-left lobby teardown", () => {
 
     await hostWs.trigger("close");
 
-    // The guest keeps their seat, the lobby stays listed, and it still
-    // starts on its listing deadline.
-    expect(guestWs.close).not.toHaveBeenCalled();
-    expect(game.phase()).toBe(GamePhase.Lobby);
-    expect(gm.listedLobbies()).toEqual([game]);
-    expect(game.autoStartAt()).toBeDefined();
+    expect(guestWs.close).toHaveBeenCalled();
+    expect(game.phase()).toBe(GamePhase.Finished);
+    gm.tick();
+    expect(gm.listedLobbies()).toEqual([]);
   });
 
   it("tears down even when the host socket was already dead on join", () => {

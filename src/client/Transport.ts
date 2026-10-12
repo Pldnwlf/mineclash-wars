@@ -55,6 +55,7 @@ import {
   SendKickPlayerIntentEvent,
   SendSpectateEvent,
   SendToggleGameStartTimer,
+  SendTransferHostIntentEvent,
   SendUpdateGameConfigIntentEvent,
 } from "./LobbyEvents";
 import { LocalServer } from "./LocalServer";
@@ -345,6 +346,9 @@ export class Transport {
       this.onSendKickPlayerIntent(e),
     );
 
+    this.subscribe(SendTransferHostIntentEvent, (e) =>
+      this.sendIntent({ type: "transfer_host", targetClientID: e.target }),
+    ); // mineclash #20
     this.subscribe(SendUpdateGameConfigIntentEvent, (e) =>
       this.onSendUpdateGameConfigIntent(e),
     );

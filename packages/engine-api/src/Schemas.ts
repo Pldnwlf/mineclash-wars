@@ -44,6 +44,7 @@ export type Intent =
   | UpgradeStructureIntent
   | DeleteUnitIntent
   | KickPlayerIntent
+  | TransferHostIntent
   | TogglePauseIntent
   | UpdateGameConfigIntent
   | ToggleGameStartTimer;
@@ -76,6 +77,7 @@ export type AllianceExtensionIntent = z.infer<
 >;
 export type DeleteUnitIntent = z.infer<typeof DeleteUnitIntentSchema>;
 export type KickPlayerIntent = z.infer<typeof KickPlayerIntentSchema>;
+export type TransferHostIntent = z.infer<typeof TransferHostIntentSchema>;
 export type TogglePauseIntent = z.infer<typeof TogglePauseIntentSchema>;
 export type UpdateGameConfigIntent = z.infer<
   typeof UpdateGameConfigIntentSchema
@@ -543,6 +545,12 @@ export const KickPlayerIntentSchema = z.object({
   targetPublicID: MappedID.optional(),
 });
 
+// mineclash #20: the host hands the host role to another player in the lobby.
+export const TransferHostIntentSchema = z.object({
+  type: z.literal("transfer_host"),
+  targetClientID: MappedID,
+});
+
 export const TogglePauseIntentSchema = z.object({
   type: z.literal("toggle_pause"),
   paused: z.boolean().default(false),
@@ -582,6 +590,7 @@ export const IntentSchema = z.discriminatedUnion("type", [
   AllianceExtensionIntentSchema,
   DeleteUnitIntentSchema,
   KickPlayerIntentSchema,
+  TransferHostIntentSchema,
   TogglePauseIntentSchema,
   UpdateGameConfigIntentSchema,
   ToggleGameStartTimerIntentSchema,

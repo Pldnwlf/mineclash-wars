@@ -63,6 +63,18 @@ export function authorizeIntent(
       }
       return null;
 
+    // mineclash #20: only the current host hands over, only before the start.
+    // The target check (in the lobby, not a spectator) needs the roster and
+    // lives in GameServer.handleIntent.
+    case "transfer_host":
+      if (!actor.isLobbyCreator) {
+        return { status: 403, error: "only the host can transfer the host" };
+      }
+      if (game.hasStarted) {
+        return { status: 409, error: "game already started" };
+      }
+      return null;
+
     case "update_game_config":
       if (!actor.isLobbyCreator && !actor.isAdminBot) {
         return {
