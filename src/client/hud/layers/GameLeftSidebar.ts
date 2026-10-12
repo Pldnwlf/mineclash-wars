@@ -5,6 +5,7 @@ import { assetUrl } from "../../../core/AssetUrls";
 import type { EventBus } from "../../../core/EventBus";
 import { GameMode, type Team } from "../../../core/game/Game";
 import type { Controller } from "../../Controller";
+import { leaderboardBadgeText } from "../../mineclash/LeaderboardBadge";
 import { Platform } from "../../Platform";
 import { themeProvider } from "../../theme/ThemeProvider";
 import { getTranslatedPlayerTeamLabel, translateText } from "../../Utils";
@@ -173,10 +174,13 @@ export class GameLeftSidebar extends LitElement implements Controller {
             : null}
           ${this.isPlayerStatsShown || this.isTeamStatsShown
             ? html`<span
-                class="ml-auto text-[10px] text-slate-500 select-all leading-none self-start"
-                title=${translateText("help_modal.game_id_tooltip")}
-                >${this.game?.gameID() ?? ""}</span
-              >`
+                  class="rounded bg-sky-700/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                  >${leaderboardBadgeText()}</span
+                ><span
+                  class="ml-auto text-[10px] text-slate-500 select-all leading-none self-start"
+                  title=${translateText("help_modal.game_id_tooltip")}
+                  >${this.game?.gameID() ?? ""}</span
+                >`
             : null}
         </div>
         ${this.isPlayerTeamLabelVisible

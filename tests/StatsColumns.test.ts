@@ -1,4 +1,4 @@
-import { profileIcon, teamIcon } from "../src/client/hud/HotbarIcons";
+import { teamIcon } from "../src/client/hud/HotbarIcons";
 import {
   COLUMN_DEFS,
   columnById,
@@ -45,8 +45,8 @@ describe("Stats column registry", () => {
       src: teamIcon,
     });
     expect(columnById("player").headerVisual).toEqual({
-      kind: "icon",
-      src: profileIcon,
+      kind: "text",
+      text: "leaderboard.player",
     });
   });
 
