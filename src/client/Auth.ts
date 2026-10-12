@@ -1,5 +1,6 @@
 import { TokenPayload, TokenPayloadSchema } from "@openfront/shared/ApiSchemas";
 import { base64urlToUuid } from "@openfront/shared/Base64";
+import { GameEnv } from "@openfront/shared/configuration/Env";
 import { decodeJwt } from "jose";
 import { UserSettings } from "src/client/UserSettings";
 import { z } from "zod";
@@ -9,6 +10,8 @@ import { crazyGamesSDK } from "./CrazyGamesSDK";
 import type { DesktopSessionState, SessionFailureKind } from "./DesktopShell";
 import { desktopLinkGate, isDesktopShell } from "./DesktopShell";
 import { showInGameAlert } from "./InGameModal";
+import { Features } from "./mineclash/Features";
+import { acquireSession } from "./mineclash/Login";
 import type { SteamTicketResult } from "./SteamSDK";
 import { steamSDK } from "./SteamSDK";
 import { generateCryptoRandomUUID, translateText } from "./Utils";
@@ -509,6 +512,16 @@ async function doRefreshJwt(): Promise<void> {
       // below.
       return doCrazyGamesLogin(token);
     }
+  }
+  if (!Features.openfrontAuth) {
+    // mineclash #21: take over the mineclash.de login, else guest JWT.
+    const s = await acquireSession(
+      getApiBase(),
+      ClientEnv.env() === GameEnv.Dev,
+    );
+    __jwt = s?.jwt ?? null;
+    if (s) __expiresAt = Date.now() + s.expiresIn * 1000;
+    return;
   }
   try {
     console.log("Refreshing jwt");

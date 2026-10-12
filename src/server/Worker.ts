@@ -42,6 +42,7 @@ import { getUserMe, userMeFailureClose, verifyClientToken } from "./jwt";
 import { levelBadgeForPlayer } from "./LevelBadge";
 import { payForLobbyQueue, queueListedLobby } from "./LobbyQueuePayment";
 import { logger } from "./Logger";
+import { isGuestClaims, mineclashIdentity } from "./mineclash/Identity";
 import { resolveVerifiedJoin } from "./Privilege";
 
 import { MapPlaylist } from "./MapPlaylist";
@@ -98,21 +99,23 @@ export async function startWorker() {
   const lobbyService = new WorkerLobbyService(server, wss, gm, log);
   const singleplayerPresence = new SingleplayerPresence();
 
-  setTimeout(
-    () => {
-      // The ranked loop follows the deployment-active flag the master pushes
-      // to this worker (OPE-469): a draining, standby or fenced server keeps
-      // the games it has but stops offering new matches.
-      startRankedCheckinLoops({
-        gm,
-        playlist,
-        workerId,
-        log,
-        isActive: () => lobbyService.isDeploymentActive(),
-      });
-    },
-    1000 + Math.random() * 2000,
-  );
+  // mineclash #4: ranked check-in only with the OpenFront API.
+  if (ServerEnv.openfrontApi())
+    setTimeout(
+      () => {
+        // The ranked loop follows the deployment-active flag the master pushes
+        // to this worker (OPE-469): a draining, standby or fenced server keeps
+        // the games it has but stops offering new matches.
+        startRankedCheckinLoops({
+          gm,
+          playlist,
+          workerId,
+          log,
+          isActive: () => lobbyService.isDeploymentActive(),
+        });
+      },
+      1000 + Math.random() * 2000,
+    );
 
   if (ServerEnv.otelEnabled()) {
     initWorkerMetrics(gm, lobbyService, singleplayerPresence);
@@ -124,7 +127,9 @@ export async function startWorker() {
     ServerEnv.jwtIssuer() + "/reserved_clan_tags",
     log,
   );
-  privilegeRefresher.start();
+  // mineclash #4: cosmetics/reserved tags only from the OpenFront API; without
+  // it the checker stays fail-open (no cosmetics are offered anyway).
+  if (ServerEnv.openfrontApi()) privilegeRefresher.start();
 
   // Ahead of everything that can reject a request — the worker-prefix check
   // below and the rate limiter further down — so that a 404 or a 429 still
@@ -430,7 +435,7 @@ export async function startWorker() {
       auth.persistentId,
       // Dev has no payment backend; skip the charge so the feature is
       // testable locally (same precedent as the listing subscription check).
-      ServerEnv.env() === GameEnv.Dev
+      ServerEnv.env() === GameEnv.Dev || !ServerEnv.openfrontApi()
         ? async () => ({ type: "success" })
         : () => payForLobbyQueue(token, game.id),
     );
@@ -642,7 +647,8 @@ export async function startWorker() {
         // API. Runs before the rejoin attempt so a pre-start identity
         // change on refresh is screened before it is applied.
         let verifySkipped = false;
-        if (ServerEnv.env() !== GameEnv.Dev) {
+        // mineclash #4: join_verify is an OpenFront API endpoint; off by default.
+        if (ServerEnv.env() !== GameEnv.Dev && ServerEnv.openfrontApi()) {
           const game = gm.game(clientMsg.gameID);
           const stored = game?.storedIdentity(persistentId) ?? null;
           const isReadmit = game?.wasAdmitted(persistentId) ?? false;
@@ -712,6 +718,9 @@ export async function startWorker() {
           }
         }
 
+        // mineclash #21: logged-in players always play under their MC name.
+        ({ username, clanTag } = mineclashIdentity(claims, username, clanTag));
+
         // Try to reconnect an existing client (e.g., page refresh) with the
         // screened identity — before the game starts, a refresh under a new
         // name updates the displayed identity like a fresh join would. When
@@ -752,8 +761,9 @@ export async function startWorker() {
             ws.close(CloseCode.Unauthorized, CloseReason.LoginRequired);
             return;
           }
-        } else {
-          // Verify token and get player permissions
+        } else if (!isGuestClaims(claims)) {
+          // Verify token and get player permissions (guests: no account, so a
+          // /users/@me failure can never lock them out - #21)
           const result = await getUserMe(clientMsg.token);
           if (result.type === "error") {
             log.warn(`Unauthorized: ${result.message}`, {

@@ -20,6 +20,11 @@ export class Client {
   // once here rather than for every entry of every per-recipient broadcast.
   public readonly wireLevelBadge: number | undefined;
 
+  // mineclash #21: Gast-JWT => nur Gratis-Lobbys (#23).
+  get isGuest(): boolean {
+    return this.claims?.guest === true;
+  }
+
   constructor(
     public readonly clientID: ClientID,
     public readonly persistentID: string,
