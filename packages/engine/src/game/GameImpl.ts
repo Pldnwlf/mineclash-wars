@@ -239,6 +239,9 @@ export class GameImpl implements Game {
       allPlayers,
       this.playerTeams,
       isDuosTriosQuads,
+      undefined,
+      // mineclash #9: rules preset => random teams (no clan/friend grouping).
+      this._config.gameConfig().mineclashRules !== undefined,
     );
     for (const [playerInfo, team] of playerToTeam.entries()) {
       if (team === "kicked") {
@@ -1008,6 +1011,41 @@ export class GameImpl implements Game {
     winner: Player | Team | null,
     allPlayersStats: AllPlayersStats,
   ): void {
+    this.finishGame(
+      winner,
+      winner === null ? undefined : this.makeWinner(winner),
+      allPlayersStats,
+    );
+  }
+
+  // mineclash #9: ids sorted so every client votes the identical key.
+  setHumanWinners(
+    winners: Player[],
+    team: Team | null,
+    allPlayersStats: AllPlayersStats,
+  ): void {
+    const ids = winners
+      .map((p) => p.clientID())
+      .filter((id): id is string => id !== null)
+      .sort();
+    this.finishGame(
+      team ?? winners[0],
+      // Humans always carry a clientID, so ids is never empty.
+      (team !== null ? ["team", team, ...ids] : ["player", ...ids]) as Winner,
+      allPlayersStats,
+    );
+  }
+
+  // mineclash #9: sentinel team name in _winner (non-null = game decided).
+  setNoHumanWinner(allPlayersStats: AllPlayersStats): void {
+    this.finishGame("NoHumanWinner", ["none"], allPlayersStats);
+  }
+
+  private finishGame(
+    winner: Player | Team | null,
+    wire: Winner | undefined,
+    allPlayersStats: AllPlayersStats,
+  ): void {
     this._winner = winner;
     // OFM: snapshot final tiles for standings (bots skipped in recordFinalTiles).
     for (const player of this.players()) {
@@ -1022,7 +1060,7 @@ export class GameImpl implements Game {
     }
     this.addUpdate({
       type: GameUpdateType.Win,
-      winner: winner === null ? undefined : this.makeWinner(winner),
+      winner: wire,
       allPlayersStats,
     });
   }

@@ -215,6 +215,15 @@ export const OvertimeConfigSchema = z.object({
   startMinutes: zb.uint({ min: 1, max: 120 }).optional(),
 });
 
+// mineclash #9: win-rule preset for stake/rotation matches. Presence = on; the
+// rules themselves are fixed in engine MineclashWinCheck.ts (humans only, 80%
+// bar sinking 1 point/min from minute 15, tie shares). endMinutes = game
+// minute at which the human with the most land wins.
+export const MINECLASH_END_MINUTES = 25;
+export const MineclashRulesSchema = z.object({
+  endMinutes: zb.uint({ min: 1, max: 120 }),
+});
+
 // A lobby pool: several lobbies that arriving players are spread across, so
 // one advertised entry point can absorb more players than a single lobby
 // holds. Assignment is a hash of the joiner's identity (server/PoolRouting.ts),
@@ -254,6 +263,7 @@ export const GameConfigSchema = z.object({
   gameMapSize: z.enum(GameMapSize),
   doomsdayClock: DoomsdayClockConfigSchema.optional(),
   overtime: OvertimeConfigSchema.optional(),
+  mineclashRules: MineclashRulesSchema.optional(), // mineclash #9
   publicGameModifiers: z
     .object({
       isCompact: z.boolean().optional(),
@@ -642,6 +652,9 @@ export const WinnerSchema = z
     z.tuple([z.literal("player"), ID]).rest(ID),
     z.tuple([z.literal("team"), SafeString]).rest(ID),
     z.tuple([z.literal("nation"), SafeString]).rest(ID),
+    // mineclash #9: game decided, no human won (stakes refunded). Distinct
+    // from `undefined` (cancelled/unfinished). ["player", a, b] = shared win.
+    z.tuple([z.literal("none")]),
   ])
   .optional();
 export type Winner = z.infer<typeof WinnerSchema>;

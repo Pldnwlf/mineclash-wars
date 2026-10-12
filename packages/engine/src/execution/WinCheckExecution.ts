@@ -9,6 +9,7 @@ import { z } from "zod";
 import { Execution, Game } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
 import type { ExecRecord, SnapshotReader } from "../snapshot/SnapshotContext";
+import { checkMineclashWin } from "./MineclashWinCheck";
 
 export class WinCheckExecution implements Execution {
   private active = true;
@@ -34,6 +35,12 @@ export class WinCheckExecution implements Execution {
     if (this.mg === null) throw new Error("Not initialized");
 
     if (this.checkRanked2v2Cancelled()) {
+      return;
+    }
+
+    // mineclash #9: rules preset replaces the OpenFront win check.
+    if (this.mg.config().gameConfig().mineclashRules !== undefined) {
+      if (checkMineclashWin(this.mg)) this.active = false;
       return;
     }
 

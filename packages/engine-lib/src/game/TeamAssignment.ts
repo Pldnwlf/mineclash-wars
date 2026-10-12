@@ -17,6 +17,8 @@ export function assignTeams(
   teams: Team[],
   isDuosTriosQuads: boolean,
   maxTeamSize: number = getMaxTeamSize(players.length, teams.length),
+  // mineclash #9: ignore clan tags + friends, shuffle (seeded) instead.
+  randomTeams: boolean = false,
 ): Map<PlayerInfo, Team | "kicked"> {
   const result = new Map<PlayerInfo, Team | "kicked">();
   const teamPlayerCount = new Map<Team, number>();
@@ -42,7 +44,7 @@ export function assignTeams(
   const clanGroups = new Map<string, PlayerInfo[]>();
   const nonClanPlayers: PlayerInfo[] = [];
   for (const p of unpinned) {
-    if (p.clanTag) {
+    if (p.clanTag && !randomTeams) {
       if (!clanGroups.has(p.clanTag)) clanGroups.set(p.clanTag, []);
       clanGroups.get(p.clanTag)!.push(p);
     } else {
@@ -94,7 +96,7 @@ export function assignTeams(
   };
   for (const p of players) {
     if (p.clientID === null) continue;
-    for (const friendID of p.friends) {
+    for (const friendID of randomTeams ? [] : p.friends) {
       if (!presentClientIDs.has(friendID)) continue;
       addEdge(p.clientID, friendID);
       addEdge(friendID, p.clientID);
@@ -149,9 +151,14 @@ export function assignTeams(
     const random = new PseudoRandom(simpleHash(nationPlayers[0].id));
     nationPlayers = random.shuffleArray(nationPlayers);
   }
-  const otherPlayers = nonClanPlayers.filter(
+  let otherPlayers = nonClanPlayers.filter(
     (p) => p.playerType !== PlayerType.Nation,
   );
+  if (randomTeams && otherPlayers.length > 0) {
+    otherPlayers = new PseudoRandom(
+      simpleHash(otherPlayers[0].id),
+    ).shuffleArray(otherPlayers);
+  }
 
   for (const p of otherPlayers.concat(nationPlayers)) {
     placePlayer(p);

@@ -109,9 +109,9 @@ function parseWinner(
   }
 
   if (winnerArray[0] === "player" && winnerArray.length >= 2) {
-    const clientId = winnerArray[1];
-    const name = idToName.get(clientId) ?? clientId;
-    return { names: name, count: 1 };
+    // mineclash #9: shared win lists several ids.
+    const names = winnerArray.slice(1).map((id) => idToName.get(id) ?? id);
+    return { names: names.join(", "), count: names.length };
   }
 
   // Unknown winner format - don't display confusing output
