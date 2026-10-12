@@ -227,6 +227,8 @@ export interface JoinLobbyEvent {
   gameRecord?: GameRecord;
   source?: "public" | "private" | "host" | "matchmaking" | "singleplayer";
   publicLobbyInfo?: GameInfo | PublicGameInfo;
+  // mineclash #19: wait on the menu card instead of the join modal.
+  inline?: boolean;
   // Watch without playing.
   spectator?: boolean;
   // Host only: the play token the lobby was created under (see createLobby).
@@ -1551,7 +1553,7 @@ class Client {
       this.lobbyHandle.stop(true);
       setInGameSignal(false);
     }
-    if (lobby.source === "public") {
+    if (lobby.source === "public" && !lobby.inline) {
       // Awaited so the modal opens before the join goes on to close it. A
       // modal that won't load doesn't stop the join.
       await loadModal("join-lobby-modal").catch((err) =>
