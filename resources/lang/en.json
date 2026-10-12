@@ -1390,7 +1390,6 @@
     "copyright": "© OpenFront™ and Contributors",
     "create": "Create Lobby",
     "discord_avatar_alt": "Discord profile avatar",
-    "github": "GitHub",
     "go_to_troubleshooting": "Go to our troubleshooting page",
     "help": "Help",
     "join": "Join Lobby",
@@ -1410,8 +1409,7 @@
     "title": "OpenFront (ALPHA)",
     "troubleshooting": "Troubleshooting",
     "tutorial": "Tutorial",
-    "user_avatar_alt": "{username}'s avatar",
-    "wiki": "Wiki"
+    "user_avatar_alt": "{username}'s avatar"
   },
   "map": {
     "achiran": "Achiran",
@@ -1665,10 +1663,12 @@
     "menu_next_stake": "Next match · Stake",
     "menu_no_lobby": "No lobby open right now",
     "menu_no_stake_lobby": "No stake lobby open right now",
+    "menu_starts_in": "starts in",
     "potd_coins": "Most coins won",
     "potd_empty": "no data yet",
     "potd_title": "Player of the day",
     "potd_wins": "Most wins",
+    "potd_wins_today": "wins today",
     "refund_1": "All stakes are returned in full, without rake, if: the match crashes or is aborted, fewer than 2 humans play, a nation wins (no human wins), or the server's recalculation of the winner differs from the result.",
     "refund_2": "Humans vs Nations is only played without a stake.",
     "refund_title": "Refunds",

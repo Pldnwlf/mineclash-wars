@@ -35,10 +35,8 @@ export function joinedFromEvent(
   return source === "public" ? gameID : null;
 }
 
-export const GLOW_CLASS =
-  "ring-4 ring-cyber-yellow shadow-[0_0_28px_var(--color-cyber-yellow)]";
-export const IDLE_CLASS =
-  "ring-1 ring-white/10 hover:ring-2 hover:ring-malibu-blue";
+export const GLOW_CLASS = "ring-4 ring-mc shadow-[0_0_28px_var(--color-mc)]";
+export const IDLE_CLASS = "border border-white/10 hover:border-mc/50";
 
 export function glowClass(isJoined: boolean): string {
   return isJoined ? GLOW_CLASS : IDLE_CLASS;

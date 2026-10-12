@@ -1,0 +1,41 @@
+/* mineclash #19: homepage shell in the FrontWars look (glass panels on a
+   blurred world map, left icon rail, 880px column). Own file so upstream
+   styles stay untouched. */
+@theme {
+  --color-mc: #f29520;
+}
+
+body:not(.in-game) #background-layer {
+  inset: -12px;
+  opacity: 1;
+  background-image: var(--mc-bg-url) !important;
+  filter: blur(3px) brightness(0.7) saturate(0.9);
+  background-size: cover;
+  background-position: center;
+}
+
+body:not(.in-game) #hex-grid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #00000066;
+}
+
+@media (min-width: 1024px) {
+  /* room for the fixed icon rail */
+  body:not(.in-game) main-layout > main {
+    padding-left: 104px;
+  }
+  body:not(.in-game) page-footer > footer {
+    padding-left: calc(104px + 1.5rem);
+  }
+  body:not(.in-game) main-layout > main > div {
+    max-width: 880px;
+    justify-content: center;
+  }
+}
+
+/* no big centre logo behind the menu */
+#hex-grid > div:not(#background-layer) {
+  display: none;
+}

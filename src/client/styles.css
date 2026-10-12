@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./halloween.css";
+@import "./mineclash/menu/menu.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 @custom-variant hover (&:hover);

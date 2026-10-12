@@ -244,6 +244,10 @@ export class LangSelector extends LitElement {
 
   private applyTranslation() {
     const components = [
+      // mineclash #19
+      "player-of-the-day",
+      "mineclash-side-nav",
+      "mineclash-menu",
       "single-player-modal",
       "host-lobby-modal",
       "map-picker",

@@ -1,6 +1,9 @@
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { LitElement, html } from "lit";
 import { customElement } from "lit/decorators.js";
+import { Features } from "../mineclash/Features";
+import "../mineclash/menu/PlayerOfTheDay";
+import "../mineclash/menu/SideNav";
 import "./NavAccountMenu";
 import "./NavUtilityIcons";
 
@@ -45,42 +48,40 @@ export class DesktopNavBar extends LitElement {
 
   render() {
     window.currentPageId ??= "page-play";
-    const currentPage = window.currentPageId;
 
+    // mineclash #19: FrontWars layout: header with logo, player of the day and
+    // account; pages (news, history, rules, help, settings) in the icon rail.
+    // mineclash #5: Store/Inventar/Rangliste/Clans nicht gerendert (mineclash/Features.ts).
     return html`
       <nav
-        class="hidden lg:flex w-full bg-zinc-900/90 backdrop-blur-md items-center justify-center gap-8 py-4 shrink-0 z-50 relative"
+        class="relative z-50 hidden h-16 w-full shrink-0 items-center border-b border-white/10 bg-black/40 backdrop-blur-md lg:flex"
       >
-        <div class="flex flex-col items-center justify-center">
-          <div class="h-8">
-            <img
-              class="block h-full aspect-[1328/249]"
-              src=${assetUrl("images/mineclash/Logo.png")}
-              alt="MineClash"
-            />
-          </div>
-          <div
-            id="game-version"
-            class="l-header__highlightText text-center"
-          ></div>
+        <a
+          href="/"
+          class="flex h-full shrink-0 items-center pl-8"
+          aria-label="MineClash"
+        >
+          <img
+            class="block h-8 aspect-[1328/249]"
+            src=${assetUrl("images/mineclash/Logo.png")}
+            alt="MineClash"
+          />
+          <span id="game-version" class="hidden"></span>
+        </a>
+        <div class="flex min-w-0 flex-1 items-center justify-center px-4">
+          <player-of-the-day
+            compact
+            class="min-w-0 max-[1100px]:hidden"
+          ></player-of-the-day>
         </div>
-        <button
-          class="nav-menu-item ${currentPage === "page-play"
-            ? "active"
-            : ""} text-white/70 hover:text-malibu-blue  font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-malibu-blue "
-          data-page="page-play"
-          data-i18n="main.play"
-        ></button>
-        <!-- mineclash #5: Store/Inventar/Rangliste/Clans nicht gerendert (mineclash/Features.ts). -->
-        <!-- Utility cluster: bell, help, settings and the profile control are
-             account/notification/utility affordances rather than page links,
-             so they sit tight together behind a divider instead of in the nav
-             item list. -->
-        <div class="flex items-center gap-1 pl-5 ml-1 border-l border-white/10">
-          <nav-utility-icons size="desktop"></nav-utility-icons>
+        <div class="flex shrink-0 items-center gap-1 pr-5">
+          ${Features.upstreamMenu
+            ? html`<nav-utility-icons size="desktop"></nav-utility-icons>`
+            : null}
           <nav-account-menu variant="desktop"></nav-account-menu>
         </div>
       </nav>
+      <mineclash-side-nav></mineclash-side-nav>
     `;
   }
 }
