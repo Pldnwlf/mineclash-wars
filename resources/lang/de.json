@@ -1207,7 +1207,13 @@
     "host_left": "Der Gastgeber hat die Lobby verlassen.",
     "lobby_creator": "Du wurdest vom Lobby-Ersteller aus dem Spiel gekickt.",
     "match_cancelled": "Spiel abgebrochen: Ein Spieler konnte sich nicht verbinden. Du hast keine ELO verloren.",
-    "server_update": "Der Server wird aktualisiert. Diese Lobby bzw. dieses Match wurde beendet. Einsätze werden zurückerstattet."
+    "server_update": "Der Server wird aktualisiert. Diese Lobby bzw. dieses Match wurde beendet. Einsätze werden zurückerstattet.",
+    "stake_cancelled": "Einsatz-Lobby abgebrochen: weniger als 2 Spieler. Dein Einsatz wird zurückerstattet.",
+    "stake_guest": "Einsatz-Lobbys brauchen einen mineclash-Login. Gäste können nur Gratis-Runden spielen.",
+    "stake_insufficient_funds": "Nicht genug Coins für den Einsatz dieser Lobby.",
+    "stake_ip_limit": "Pro IP-Adresse dürfen höchstens 2 Konten einer Einsatz-Lobby beitreten.",
+    "stake_rules_not_accepted": "Akzeptiere zuerst die Regeln der Einsatz-Matches.",
+    "stake_wallet_unavailable": "Einsätze sind gerade nicht verfügbar. Bitte versuche es später erneut."
   },
   "lang": {
     "en": "German",

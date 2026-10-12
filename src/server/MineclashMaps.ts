@@ -38,3 +38,7 @@ export const MINECLASH_ROTATION: ReadonlyMap<GameMapType, number> = new Map([
 // the daily savings rate when the lobby is created (#22) — ~10 coins at
 // ~1,000 W$/coin. Per-map overrides come from the mineclash admin later.
 export const DEFAULT_ROTATION_STAKE_DOLLARS = 10_000;
+
+// Per-map override of the rotation stake in WindSMP-$ (admin later, #23).
+export const ROTATION_STAKE_DOLLARS: ReadonlyMap<GameMapType, number> =
+  new Map();

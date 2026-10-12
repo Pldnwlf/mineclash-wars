@@ -1,7 +1,6 @@
 import {
   MAX_HOSTED_LOBBIES,
   PublicGameType,
-  SCHEDULED_PUBLIC_GAME_TYPES,
 } from "@openfront/shared/WireSchemas";
 import { Worker } from "cluster";
 import winston from "winston";
@@ -22,6 +21,13 @@ import {
 } from "./LobbyCoordinatorClient";
 import { logger } from "./Logger";
 import { MapPlaylist } from "./MapPlaylist";
+import {
+  FREE_ROTATION,
+  rotationConfig,
+  rotationTimerMs,
+  STAKE_ROTATION,
+} from "./mineclash/MineclashRotation";
+import { getWallet } from "./mineclash/MineclashWallet";
 import { startPolling } from "./PollingLoop";
 import { ServerEnv } from "./ServerEnv";
 
@@ -35,7 +41,7 @@ export interface MasterLobbyServiceOptions {
  * plus the queue behind it. The whole queue is advertised, so the Detailed
  * View can show what's coming, not just the lobby about to start.
  */
-export const QUEUED_LOBBIES_PER_TYPE = 6;
+export const QUEUED_LOBBIES_PER_TYPE = 1; // mineclash #23: one active lobby per rotation
 
 export class MasterLobbyService {
   private readonly workers = new Map<number, Worker>();
@@ -461,9 +467,9 @@ export class MasterLobbyService {
 
     const lobbiesByType = this.getAllLobbies().games;
 
-    // Scheduled types only: hosted lobbies are started by their host, never
-    // given a countdown or replaced by the master.
-    for (const type of SCHEDULED_PUBLIC_GAME_TYPES) {
+    // mineclash #23: two rotations (stake "ffa", free "special"), each with
+    // exactly one active public lobby. Hosted lobbies are started by their host.
+    for (const type of [STAKE_ROTATION, FREE_ROTATION]) {
       const lobbies = lobbiesByType[type];
 
       // Always ensure the next lobby has a timer, even if the queue is
@@ -475,7 +481,9 @@ export class MasterLobbyService {
         this.sendMessageToWorker({
           type: "updateLobby",
           gameID: nextLobby.gameID,
-          startsAt: Date.now() + ServerEnv.gameCreationRate(),
+          // Timer 20-90 s by the map's max players.
+          startsAt:
+            Date.now() + rotationTimerMs(nextLobby.gameConfig?.maxPlayers),
         });
       }
 
@@ -485,10 +493,13 @@ export class MasterLobbyService {
         continue;
       }
 
+      // No stake lobby without a ready wallet / rate; the free one keeps running.
+      const gameConfig = await rotationConfig(this.playlist, type, getWallet());
+      if (gameConfig === null) continue;
       this.sendMessageToWorker({
         type: "createGame",
         gameID: ServerEnv.generateGameId(),
-        gameConfig: await this.playlist.gameConfig(type),
+        gameConfig,
         publicGameType: type,
       } satisfies MasterCreateGame);
     }

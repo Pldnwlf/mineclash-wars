@@ -735,15 +735,11 @@ describe("MasterLobbyService hosted lobbies", () => {
         }
       }
     }
-    // The scheduled types still get their replacement lobbies.
+    // mineclash #23: only the free rotation without a wallet (no stake lobby).
     const created = workers.flatMap((w) =>
       sentMessages(w).filter((m) => m.type === "createGame"),
     );
-    expect(created.map((m) => m.publicGameType).sort()).toEqual([
-      "ffa",
-      "special",
-      "team",
-    ]);
+    expect(created.map((m) => m.publicGameType).sort()).toEqual(["special"]);
   });
 });
 

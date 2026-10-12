@@ -79,7 +79,12 @@ import { ListingState } from "./ListingState";
 import { logger } from "./Logger";
 import { identityFor, MatchTelemetryRecorder } from "./MatchTelemetryRecorder";
 import { ReportRequest } from "./mineclash/MineclashApi";
-import { getWallet, handleMineclashResult } from "./mineclash/MineclashWallet";
+import { StakeLobby, type StakeCode } from "./mineclash/MineclashStake";
+import {
+  getWallet,
+  handleMineclashResult,
+  type MineclashWallet,
+} from "./mineclash/MineclashWallet";
 import { alertAuszahlung } from "./MineclashAlerts";
 import { submitReport, toUuid } from "./MineclashReports";
 import {
@@ -145,6 +150,8 @@ const KICK_REASON_ADMIN = "kick_reason.admin";
 const KICK_REASON_HOST_LEFT = "kick_reason.host_left";
 const KICK_REASON_MATCH_CANCELLED = "kick_reason.match_cancelled";
 const KICK_REASON_SERVER_UPDATE = "kick_reason.server_update";
+// mineclash #23: a stake lobby that cannot start (< 2 humans); stakes are refunded.
+const KICK_REASON_STAKE_CANCELLED = "kick_reason.stake_cancelled";
 
 export interface GameServerOptions {
   id: string;
@@ -184,6 +191,8 @@ export interface GameServerDeps {
   mintGroupToken: () => string;
   // mineclash #28: persist a player report (see MineclashReports).
   storeReport: (r: Omit<ReportRequest, "ts">) => Promise<unknown>;
+  // mineclash #23: wallet for stake lobbies (null = wallet off).
+  wallet: () => MineclashWallet | null;
 }
 
 // 16 URL-safe characters of CSPRNG output — 12 bytes is exactly 16 base64url
@@ -223,6 +232,7 @@ export function defaultGameServerDeps(): GameServerDeps {
     telemetryBuildHash: "DEV",
     mintGroupToken,
     storeReport: submitReport,
+    wallet: getWallet,
   };
 }
 
@@ -309,6 +319,9 @@ export class GameServer {
 
   private lobbyInfoIntervalId: ReturnType<typeof setInterval> | null = null;
 
+  // mineclash #23: set for lobbies with a stake (GameConfig.mineclashStake).
+  private readonly stake?: StakeLobby;
+
   private visibleAt?: number;
 
   // The successor lobby this game has already spawned, if any. Kept so a
@@ -351,6 +364,13 @@ export class GameServer {
     this.matchmakingTeams = opts.matchmakingTeams;
     this.deps = { ...defaultGameServerDeps(), ...deps };
     this.groupToken = this.deps.mintGroupToken();
+    if (opts.gameConfig.mineclashStake !== undefined) {
+      this.stake = new StakeLobby(
+        opts.id,
+        opts.gameConfig.mineclashStake.coins,
+        this.deps.wallet,
+      );
+    }
     this.telemetry = new MatchTelemetryRecorder(
       this.deps.telemetry,
       opts.id,
@@ -398,6 +418,10 @@ export class GameServer {
 
   public updateGameConfig(gameConfig: GameConfigPatch): void {
     applyGameConfigPatch(this.gameConfig, gameConfig);
+    // mineclash #23: Humans vs Nations only without a stake (#9).
+    if (this.stake && this.gameConfig.playerTeams === HumansVsNations) {
+      this.gameConfig.playerTeams = 2;
+    }
     // A lowered cap (the admin bot can set one) may already be met; without
     // this the lobby would wait for the next join to notice it is full.
     this.markFullIfAutoStarting();
@@ -686,6 +710,17 @@ export class GameServer {
       return "rejected";
     }
 
+    // mineclash #23: stake lobby admission (login, rules, wallet, IP limit).
+    const refused = this.stake?.admit(client, this.clients.active()) ?? null;
+    if (refused !== null) {
+      this.log.info("stake join refused", {
+        clientID: client.clientID,
+        refused,
+      });
+      this.refuseStakeJoin(client, refused);
+      return "rejected";
+    }
+
     this.log.info("client joining game", {
       clientID: client.clientID,
       persistentID: client.persistentID,
@@ -763,6 +798,7 @@ export class GameServer {
     );
     this.ingress.attach(client);
     this.startLobbyInfoBroadcast();
+    if (this.stake && !client.spectator) void this.holdStake(client);
 
     this.markFullIfAutoStarting();
 
@@ -916,13 +952,15 @@ export class GameServer {
     }
     // Remove persistentId if the game has not started to prevent going over max players
     this.clients.forgetReconnect(client);
+    // mineclash #23: leaving before the start frees the stake.
+    void this.stake?.release(client.persistentID);
     // Close lobby when host leaves before game starts: without a host it can
     // never start. phase() reports Finished once ended, so GameManager's next
     // tick prunes it.
     // mineclash #20: also for listed lobbies (stake custom lobbies are always
     // listed) - no handover means the lobby closes. Rotation lobbies have no
     // creator, so they are untouched.
-    // mineclash #23 hook: release all stake holds of this lobby here.
+    // mineclash #23: all stake holds of this lobby are released below.
     if (
       !this.isPublic() &&
       this.creatorPersistentID !== undefined &&
@@ -935,6 +973,7 @@ export class GameServer {
         this.kickClient(c.clientID, KICK_REASON_HOST_LEFT);
       }
       this.ended = true;
+      void this.stake?.releaseAll();
     }
   }
 
@@ -964,6 +1003,8 @@ export class GameServer {
   // the API rates. Called at the start deadline; cancels the game and returns
   // true when too few matched players connected.
   public cancelShortHandedMatch(): boolean {
+    // mineclash #23: a stake lobby needs >= 2 humans, else every stake is freed.
+    if (this.stake && this.playerCount() < 2) return this.cancelStakeLobby();
     // Explicitly 1v1/2v2/FFA only — a future ranked type must opt in rather
     // than inherit pre-start cancellation.
     const rankedType = this.gameConfig.rankedType;
@@ -997,8 +1038,7 @@ export class GameServer {
   // mineclash #41: deploy drain. Closes an unstarted lobby, or aborts a match
   // that outlived the drain cap. phase() reports Finished once ended, so
   // GameManager's next tick prunes it.
-  // mineclash #22/#25: an aborted match must refund every stake (no rake);
-  // hook in here once the wallet settle exists.
+  // mineclash #22/#25: an aborted match refunds every stake (no rake).
   public abortForDrain(): void {
     this.log.info("aborting game for server update", {
       gameID: this.id,
@@ -1008,6 +1048,86 @@ export class GameServer {
       this.kickClient(c.clientID, KICK_REASON_SERVER_UPDATE);
     }
     this.ended = true;
+    if (this.stake) {
+      if (!this.hasStarted()) void this.stake.releaseAll();
+      else if (!this.verified) {
+        // Running match: refund-settle (idempotent per match, first result wins).
+        this.verified = true;
+        this.deps.onMineclashResult(
+          this.id,
+          { kind: "refund", reason: "aborted" },
+          {
+            config: this.gameConfig,
+            persistentIdOf: (id) => this.clients.get(id)?.persistentID,
+          },
+        );
+      }
+    }
+  }
+
+  // mineclash #23: stake lobby hooks ---------------------------------------
+
+  private stakeMember(client: Client): boolean {
+    return (
+      !this.ended &&
+      this.clients.active().some((c) => c.persistentID === client.persistentID)
+    );
+  }
+
+  // Tell the player why, then close. For an already seated client the socket
+  // close runs handleClientDisconnect (which releases the stake).
+  private refuseStakeJoin(client: Client, code: StakeCode): void {
+    const reason = `kick_reason.${code}`;
+    client.ws.send(
+      encodeServerMessage(
+        { type: "error", error: reason } satisfies ServerErrorMessage,
+        this.zbinCtx,
+      ),
+    );
+    client.ws.close(CloseCode.Normal, reason);
+  }
+
+  private async holdStake(client: Client): Promise<void> {
+    const code = await this.stake!.hold(client.persistentID);
+    if (code !== null) {
+      if (this.stakeMember(client)) this.refuseStakeJoin(client, code);
+      return;
+    }
+    // Left, kicked or lobby closed while the hold was in flight.
+    if (!this.stakeMember(client))
+      void this.stake!.release(client.persistentID);
+  }
+
+  // Kicks everyone, frees all stakes and closes the lobby.
+  private cancelStakeLobby(): boolean {
+    this.log.info("cancelling stake lobby, fewer than 2 humans", {
+      gameID: this.id,
+    });
+    for (const c of [...this.clients.active()]) {
+      this.kickClient(c.clientID, KICK_REASON_STAKE_CANCELLED);
+    }
+    this.ended = true;
+    void this.stake!.releaseAll();
+    return true;
+  }
+
+  // Before start: players whose hold is not confirmed (yet) do not play; with
+  // < 2 humans left the lobby is cancelled. false = do not start.
+  private prepareStakeStart(): boolean {
+    for (const c of [...this.clients.players()]) {
+      if (!this.stake!.isHeld(c.persistentID)) {
+        this.refuseStakeJoin(c, "stake_wallet_unavailable");
+        this.clients.markLeft(c);
+        this.clients.forgetReconnect(c);
+      }
+    }
+    if (this.playerCount() < 2) {
+      this.cancelStakeLobby();
+      return false;
+    }
+    void this.stake!.releaseExcept(this.clients.players());
+    this.stake!.logSharedIps(this.clients.players());
+    return true;
   }
 
   // Nobody was connected when the delayed start came due. An empty roster at
@@ -1188,6 +1308,7 @@ export class GameServer {
     if (this.stage === "started" || this.ended) {
       return;
     }
+    if (this.stake && !this.prepareStakeStart()) return;
     this.stage = "started";
     this._startTime = Date.now();
     // Set last ping to start so we don't immediately stop the game
@@ -1947,6 +2068,8 @@ export class GameServer {
       return;
     }
 
+    // mineclash #23: a kick before the start frees the stake.
+    if (!this.hasStarted()) void this.stake?.release(client.persistentID);
     // The persistentID is banned whether or not the client is still
     // connected; only a connected one is told and cut off.
     if (this.clients.kick(client)) {

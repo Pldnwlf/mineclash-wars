@@ -1302,7 +1302,13 @@
     "host_left": "The host has left the lobby.",
     "lobby_creator": "Kicked by lobby creator",
     "match_cancelled": "Match cancelled: a player failed to connect. You have not lost any ELO.",
-    "server_update": "The server is being updated. This lobby or match was closed. Stakes are refunded."
+    "server_update": "The server is being updated. This lobby or match was closed. Stakes are refunded.",
+    "stake_cancelled": "Stake lobby cancelled: fewer than 2 players. Your stake is refunded.",
+    "stake_guest": "Stake lobbies need a mineclash login. Guests can only play free rounds.",
+    "stake_insufficient_funds": "Not enough coins for the stake of this lobby.",
+    "stake_ip_limit": "At most 2 accounts per IP address can join a stake lobby.",
+    "stake_rules_not_accepted": "Accept the stake match rules first.",
+    "stake_wallet_unavailable": "Stakes are temporarily unavailable. Please try again later."
   },
   "lang": {
     "en": "English",
