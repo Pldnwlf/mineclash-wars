@@ -136,6 +136,12 @@ Licensed under ODbL
 © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright)  
 Licensed under ODbL
 
+## Other assets
+
+- Sprites, icons and images in `resources/` not listed here come from OpenFront (CC BY-SA 4.0, see `LICENSE-ASSETS`).
+- Maps not listed individually derive from the map data sources above.
+- Music and start alarm: none yet. Sources are listed here once chosen.
+
 ## Icons
 
 ### [The Noun Project](https://thenounproject.com/)

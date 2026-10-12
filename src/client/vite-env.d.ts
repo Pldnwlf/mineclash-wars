@@ -30,6 +30,11 @@ declare module "*.txt?raw" {
   export default txtRawContent;
 }
 
+declare module "*.md?raw" {
+  const mdRawContent: string;
+  export default mdRawContent;
+}
+
 declare module "*.webp" {
   const webpContent: string;
   export default webpContent;

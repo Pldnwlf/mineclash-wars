@@ -159,6 +159,7 @@ import "./components/BannedModal";
 import "./components/DesktopStatusBar";
 import "./components/MarketingConsentToast";
 import "./components/PurchaseNudgeModal";
+import "./mineclash/MineclashModals"; // mineclash #31
 import { initAudioMixer } from "./sound/AudioMixer";
 import { startMenuMusic } from "./sound/MenuMusic";
 import {
@@ -426,6 +427,12 @@ class Client {
     });
     modalRouter.register("help", { tag: "help-modal", pageId: "page-help" });
     modalRouter.register("news", { tag: "news-modal", pageId: "page-news" });
+    // mineclash #31
+    modalRouter.register("credits", {
+      tag: "credits-modal",
+      pageId: "page-credits",
+    });
+    modalRouter.register("rules", { tag: "rules-modal", pageId: "page-rules" });
     modalRouter.register("language", {
       tag: "language-modal",
       pageId: "page-language",
@@ -1551,6 +1558,8 @@ class Client {
         "store-modal",
         "language-modal",
         "news-modal",
+        "credits-modal",
+        "rules-modal",
         "account-button",
         "leaderboard-button",
         "token-login",
