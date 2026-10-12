@@ -15,6 +15,7 @@ import { TogglePauseIntentEvent } from "../../InputHandler";
 import { PauseGameIntentEvent, SendWinnerEvent } from "../../Transport";
 import { homeHref, showToast, translateText } from "../../Utils";
 import { GameView } from "../../view";
+import { TutorialHighlightEvent } from "../Tutorial";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
 import { ShowReplayPanelEvent } from "./ReplayPanel";
 import { ShowSettingsModalEvent } from "./SettingsModal";
@@ -69,6 +70,8 @@ export class GameRightSidebar extends LitElement implements Controller {
   // before we navigate to the successor lobby.
   private newLobbyRequested = false;
   private spawnBarVisible = false;
+  // mineclash #35: the tutorial points at the game timer.
+  @state() private timerHighlighted = false;
   private immunityBarVisible = false;
 
   createRenderRoot() {
@@ -97,6 +100,10 @@ export class GameRightSidebar extends LitElement implements Controller {
     this.eventBus.on(ImmunityBarVisibleEvent, (e) => {
       this.immunityBarVisible = e.visible;
       this.updateParentOffset();
+    });
+
+    this.eventBus.on(TutorialHighlightEvent, (e) => {
+      this.timerHighlighted = e.target === "timer";
     });
 
     this.eventBus.on(SendWinnerEvent, () => {
@@ -368,7 +375,12 @@ export class GameRightSidebar extends LitElement implements Controller {
         @contextmenu=${(e: Event) => e.preventDefault()}
       >
         <!-- In-game time -->
-        <div data-game-timer class=${timerClass}>
+        <div
+          data-game-timer
+          class="${timerClass} ${this.timerHighlighted
+            ? "tutorial-highlight px-1"
+            : ""}"
+        >
           ${this.secondsToHms(this.timer)}
         </div>
 

@@ -8,6 +8,9 @@ export type TutorialHighlight =
   | "troop_rate"
   | "attack_ratio"
   | "gold"
+  // mineclash #35: game timer (right sidebar) and the donate sliders.
+  | "timer"
+  | "donate"
   | "city"
   | "port"
   | "defense_post"
@@ -66,6 +69,8 @@ export interface TutorialContext {
   hydrogenDisabled: boolean;
   mirvDisabled: boolean;
   samDisabled: boolean;
+  /** mineclash #35: donating troops or gold is allowed in this game. */
+  donateEnabled: boolean;
 }
 
 export interface TutorialStep {
@@ -92,6 +97,11 @@ export interface TutorialStep {
   bullets?: string[];
   /** Steps that don't fit this game's config are skipped. Defaults to always. */
   applies?: (ctx: TutorialContext) => boolean;
+  /**
+   * mineclash #35: the "Play now / Explain buildings" question. Everything
+   * after it only runs if the player picked "explain".
+   */
+  choice?: true;
   /** Informational steps complete when the player clicks "Got it". */
   manual?: true;
   isDone?: (ctx: TutorialContext) => boolean;
@@ -115,6 +125,21 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     highlight: "attack_ratio",
     isDone: (c) => c.attackRatioMoved,
   },
+  // mineclash #35: win condition, match money and rules are part of the basics.
+  { id: "win_condition", highlight: "timer", manual: true },
+  {
+    id: "stake_info",
+    highlight: "timer",
+    bullets: ["stake_info", "stake_payout", "stake_refund"],
+    manual: true,
+  },
+  {
+    id: "rules_info",
+    highlight: "timer",
+    bullets: ["rules_allies", "rules_teaming", "rules_report"],
+    manual: true,
+  },
+  { id: "choice", choice: true },
   // Long-running: stays up (with the nearest tribes marked with the target
   // crosshair) until the player has banked enough gold for the City step.
   {
@@ -147,6 +172,12 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     manual: true,
   },
   {
+    id: "donate_info",
+    highlight: "donate",
+    applies: (c) => c.donateEnabled,
+    manual: true,
+  },
+  {
     id: "buy_factory",
     highlight: "factory",
     unit: UnitType.Factory,
@@ -176,6 +207,14 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   {
     id: "port_info",
     bullets: ["port_info_ships", "port_info_warships"],
+    applies: (c) => !c.portDisabled,
+    manual: true,
+  },
+  // mineclash #35: income comes from trade ships and trains, no coin flip.
+  {
+    id: "trade_info",
+    highlight: "gold",
+    bullets: ["trade_ships", "trade_trains"],
     applies: (c) => !c.portDisabled,
     manual: true,
   },
@@ -251,6 +290,8 @@ export const STEP_DONE_LINGER_TICKS = 15;
  */
 export class TutorialProgress {
   private index = 0;
+  /** mineclash #35: the player asked for the building/extras tour. */
+  private extended = false;
   /** Ticks since the current step completed, or null while it's pending. */
   private doneTicks: number | null = null;
   /**
@@ -295,6 +336,15 @@ export class TutorialProgress {
     }
   }
 
+  /** Answers the choice step: false ends the tutorial, true runs the rest. */
+  choose(extended: boolean): void {
+    if (!this.current()?.choice) return;
+    this.extended = extended;
+    if (extended) this.index++;
+    else this.index = this.steps.length;
+    this.doneTicks = null;
+  }
+
   /** Moves past the current step without completing it. */
   skip(): void {
     if (this.finished()) return;
@@ -320,6 +370,8 @@ export class TutorialProgress {
   }
 
   private stepApplies(i: number, ctx: TutorialContext): boolean {
+    const choiceAt = this.steps.findIndex((s) => s.choice);
+    if (choiceAt >= 0 && i > choiceAt && !this.extended) return false;
     return this.steps[i].applies?.(ctx) ?? true;
   }
 

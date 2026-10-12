@@ -37,6 +37,7 @@ function ctx(overrides: Partial<TutorialContext> = {}): TutorialContext {
     hydrogenDisabled: false,
     mirvDisabled: false,
     samDisabled: false,
+    donateEnabled: true,
     ...overrides,
   };
 }
@@ -75,6 +76,17 @@ describe("TutorialProgress", () => {
     );
     expect(p.stepDone()).toBe(true);
     settle(p, ctx({ hasSpawned: true, attacking: true }));
+    expect(p.current()?.id).toBe("win_condition");
+    for (const id of ["stake_info", "rules_info"]) {
+      p.acknowledge();
+      settle(p, ctx({ hasSpawned: true, attacking: true }));
+      expect(p.current()?.id).toBe(id);
+    }
+    p.acknowledge();
+    settle(p, ctx({ hasSpawned: true, attacking: true }));
+    expect(p.current()?.id).toBe("choice");
+    p.choose(true);
+    p.update(ctx({ hasSpawned: true, attacking: true }));
     expect(p.current()?.id).toBe("capture_tribes");
 
     settle(
@@ -156,7 +168,8 @@ describe("TutorialProgress", () => {
       mirvDisabled: true,
       samDisabled: true,
     });
-    expect(p.total(c)).toBe(TUTORIAL_STEPS.length - 17);
+    // Basics only (before the choice): 5 core + 3 info + the choice itself.
+    expect(p.total(c)).toBe(9);
 
     settle(p, c);
     settle(p, c);
@@ -172,6 +185,14 @@ describe("TutorialProgress", () => {
     expect(p.current()?.id).toBe("attack_ratio");
     p.update({ ...c, attackRatioMoved: true });
     settle(p, c);
+    for (const id of ["win_condition", "stake_info", "rules_info"]) {
+      expect(p.current()?.id).toBe(id);
+      p.acknowledge();
+      settle(p, c);
+    }
+    // "Play now" ends the tutorial without the extras.
+    expect(p.current()?.id).toBe("choice");
+    p.choose(false);
     expect(p.finished()).toBe(true);
     expect(p.current()).toBeNull();
   });
@@ -187,11 +208,14 @@ describe("TutorialProgress", () => {
     expect(p.current()?.id).toBe("alliance_info");
     p.acknowledge();
     settle(p, ctx({ allied: true }));
+    expect(p.current()?.id).toBe("donate_info");
+    p.acknowledge();
+    settle(p, ctx({ allied: true }));
     expect(p.current()?.id).toBe("buy_factory");
 
     // Without nations (or with alliances off) both steps are skipped.
     const q = new TutorialProgress(TUTORIAL_STEPS.slice(first));
-    q.update(ctx({ nationsExist: false }));
+    q.update(ctx({ nationsExist: false, donateEnabled: false }));
     expect(q.current()?.id).toBe("buy_factory");
   });
 
@@ -239,6 +263,9 @@ describe("TutorialProgress", () => {
     settle(p, ctx({ factories: 1, ports: 1 }));
     expect(p.current()?.id).toBe("port_info");
     expect(p.current()?.bullets).toHaveLength(2);
+    p.acknowledge();
+    settle(p, ctx({ factories: 1, ports: 1 }));
+    expect(p.current()?.id).toBe("trade_info");
     p.acknowledge();
     settle(p, ctx({ factories: 1, ports: 1 }));
 
@@ -293,6 +320,12 @@ describe("TutorialProgress.skip", () => {
     p.skip();
     p.skip();
     p.skip();
+    p.skip();
+    p.skip();
+    p.skip();
+    p.update(ctx({ botsExist: false, cityDisabled: true }));
+    expect(p.current()?.id).toBe("choice");
+    p.choose(true);
     p.update(ctx({ botsExist: false, cityDisabled: true }));
     expect(p.current()?.id).toBe("propose_alliance");
   });
@@ -315,7 +348,7 @@ describe("TutorialProgress step counter", () => {
     const before = ctx({ hasSpawned: true });
     p.update(before);
     const total = p.total(before);
-    expect(total).toBe(TUTORIAL_STEPS.length);
+    expect(total).toBe(9);
 
     const after = ctx({
       hasSpawned: true,
@@ -325,5 +358,59 @@ describe("TutorialProgress step counter", () => {
     p.update(after);
     expect(p.total(after)).toBe(total);
     expect(p.position(after)).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("TutorialProgress choice", () => {
+  const atChoice = () => {
+    const p = new TutorialProgress();
+    const at = TUTORIAL_STEPS.findIndex((s) => s.choice);
+    for (let i = 0; i < at; i++) p.skip();
+    p.update(ctx());
+    expect(p.current()?.id).toBe("choice");
+    return p;
+  };
+  const walk = (p: TutorialProgress, c: TutorialContext) => {
+    const ids: string[] = [];
+    for (p.update(c); !p.finished(); p.update(c)) {
+      ids.push(p.current()!.id);
+      p.skip();
+    }
+    return ids;
+  };
+
+  it("never completes on its own and ignores acknowledge", () => {
+    const p = atChoice();
+    p.acknowledge();
+    for (let i = 0; i < 100; i++) p.update(ctx());
+    expect(p.current()?.id).toBe("choice");
+    expect(p.stepDone()).toBe(false);
+  });
+
+  it("explain runs the building steps incl. trade and donate", () => {
+    const p = atChoice();
+    p.choose(true);
+    const ids = walk(p, ctx());
+    for (const id of ["buy_city", "trade_info", "donate_info", "sam_info"]) {
+      expect(ids).toContain(id);
+    }
+  });
+
+  it("skips donate_info when donating is off", () => {
+    const p = atChoice();
+    p.choose(true);
+    expect(walk(p, ctx({ donateEnabled: false }))).not.toContain("donate_info");
+  });
+
+  it("every new step marks a HUD element", () => {
+    for (const id of [
+      "win_condition",
+      "stake_info",
+      "rules_info",
+      "trade_info",
+      "donate_info",
+    ]) {
+      expect(TUTORIAL_STEPS.find((s) => s.id === id)?.highlight).toBeDefined();
+    }
   });
 });

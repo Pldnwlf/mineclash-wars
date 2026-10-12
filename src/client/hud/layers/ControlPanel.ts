@@ -565,6 +565,7 @@ export class ControlPanel extends LitElement implements Controller {
             renderTroops(troops * this.donateTroopRatio),
             "accent-blue-500",
             (e) => this.handleDonateTroopSliderInput(e),
+            this.tutorialHighlightClass("donate"),
           )
         : ""}
       ${config?.donateGold()
@@ -578,6 +579,7 @@ export class ControlPanel extends LitElement implements Controller {
             ),
             "accent-yellow-400",
             (e) => this.handleDonateGoldSliderInput(e),
+            this.tutorialHighlightClass("donate"),
           )
         : ""}
     `;
