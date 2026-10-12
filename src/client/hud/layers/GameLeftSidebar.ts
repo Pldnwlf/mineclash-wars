@@ -113,9 +113,12 @@ export class GameLeftSidebar extends LitElement implements Controller {
   // mineclash #23: stake matches show the pot instead of the economy mode.
   private badgeText(): string {
     const coins = this.game?.config().gameConfig().mineclashStake?.coins;
+    // Pot = stake x every human who started (eliminated ones paid in too).
     const humans =
-      this.game?.players().filter((p) => p.type() === PlayerType.Human)
-        .length ?? 0;
+      coins === undefined
+        ? 0
+        : (this.game?.playerViews().filter((p) => p.type() === PlayerType.Human)
+            .length ?? 0);
     return leaderboardBadgeText(coins, humans);
   }
 
