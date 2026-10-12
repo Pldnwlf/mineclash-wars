@@ -3,6 +3,11 @@ import { customElement, state } from "lit/decorators.js";
 import { assetUrl } from "../../core/AssetUrls";
 import { composeVersionDisplay, desktopVersion } from "../DesktopShell";
 import { currentGameVersion } from "../GameVersion";
+import {
+  buildCommit,
+  sourceCodeUrl,
+  sourceFileUrl,
+} from "../mineclash/SourceLinks";
 import "./SteamWishlistButton";
 
 @customElement("page-footer")
@@ -44,7 +49,7 @@ export class Footer extends LitElement {
             class="flex items-center justify-center gap-4 lg:gap-6 pt-2 w-full relative"
           >
             <a
-              href="https://github.com/openfrontio/OpenFrontIO"
+              href=${sourceCodeUrl(buildCommit())}
               target="_blank"
               rel="noopener noreferrer"
               class="opacity-60 hover:opacity-100 hover:scale-110 transition-all"
@@ -123,6 +128,49 @@ export class Footer extends LitElement {
               href="/privacy-policy.html"
               data-i18n="main.privacy_policy"
               target="_blank"
+              class="hover:text-white transition-colors"
+            ></a>
+          </div>
+          <!-- mineclash #31: AGPL §13 source offer, licenses, credits, rules -->
+          <div
+            class="text-xs flex flex-wrap items-center justify-center gap-x-4 px-4"
+          >
+            <a
+              href=${sourceCodeUrl(buildCommit())}
+              data-i18n="mineclash.link_source"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hover:text-white transition-colors"
+            ></a>
+            <a
+              href=${sourceFileUrl("LICENSE", buildCommit())}
+              data-i18n="mineclash.link_license"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hover:text-white transition-colors"
+            ></a>
+            <a
+              href=${sourceFileUrl("LICENSE-ASSETS", buildCommit())}
+              data-i18n="mineclash.link_license_assets"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hover:text-white transition-colors"
+            ></a>
+            <a
+              href=${sourceFileUrl("LICENSING.md", buildCommit())}
+              data-i18n="mineclash.link_licensing"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hover:text-white transition-colors"
+            ></a>
+            <a
+              href="#modal=credits"
+              data-i18n="mineclash.link_credits"
+              class="hover:text-white transition-colors"
+            ></a>
+            <a
+              href="#modal=rules"
+              data-i18n="mineclash.link_rules"
               class="hover:text-white transition-colors"
             ></a>
           </div>
