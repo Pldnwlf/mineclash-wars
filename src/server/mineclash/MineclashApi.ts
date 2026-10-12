@@ -30,6 +30,7 @@
 //   POST /wallet/server-start ServerStartRequest => { ok, released }
 //   GET  /wallet/rate                       => RateResponse
 //   GET  /wallet/balance?uuid=<uuid>        => BalanceResponse
+//   POST /reports          ReportRequest    => { ok: true }  (#28, x-api-key)
 //
 // hold: reserviert Coins (nicht weg, nicht auszahlbar, nicht doppelt
 //   setzbar). Idempotent je (match_id, uuid): gleicher Betrag => Replay,
@@ -160,6 +161,20 @@ export type BalanceResponse = z.infer<typeof BalanceResponseSchema>;
 
 export const GuestTokenResponseSchema = z.object({ token: z.string() });
 
+// #28: POST /reports (Server-zu-Server). Idempotent je (match_id, reporter,
+// reported). tick = Match-Tick (Replay-Stelle), null = unbekannt.
+export const ReportRequestSchema = z.object({
+  match_id: MatchIdSchema,
+  reporter: z.string().min(1).max(64), // Melder-UUID
+  reported: z.string().min(1).max(64), // gemeldete UUID
+  reason: z.enum(["botting", "teaming", "inappropriate_username", "griefing"]),
+  tick: z.int().min(0).nullable(),
+  ts: z.int().min(0), // Unix-ms der Meldung
+  note: z.string().max(500).optional(),
+  source: z.enum(["match", "post_match"]),
+});
+export type ReportRequest = z.infer<typeof ReportRequestSchema>;
+
 export const ApiErrorSchema = z.object({ error: z.string() });
 
 export const HOLD_TTL_MS = 60 * 60 * 1000;
@@ -248,6 +263,14 @@ export class MineclashApiClient {
       "POST",
       "/wallet/server-start",
       ServerStartResponseSchema,
+      req,
+    );
+  }
+  report(req: ReportRequest) {
+    return this.call(
+      "POST",
+      "/reports",
+      z.object({ ok: z.literal(true) }),
       req,
     );
   }
