@@ -461,6 +461,10 @@ class Client {
       pageId: "page-credits",
     });
     modalRouter.register("rules", { tag: "rules-modal", pageId: "page-rules" });
+    modalRouter.register("history", {
+      tag: "history-modal",
+      pageId: "page-history",
+    });
     modalRouter.register("language", {
       tag: "language-modal",
       pageId: "page-language",
@@ -1704,6 +1708,7 @@ class Client {
         "news-modal",
         "credits-modal",
         "rules-modal",
+        "history-modal",
         "account-button",
         "leaderboard-button",
         "token-login",

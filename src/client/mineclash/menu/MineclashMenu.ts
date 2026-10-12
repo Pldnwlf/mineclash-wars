@@ -305,6 +305,11 @@ export class MineclashMenu extends LitElement {
         <a href="#modal=rules" class="${TILE} bg-malibu-blue"
           >${translateText("mineclash.menu_instructions")}</a
         >
+        <a
+          href="#modal=history"
+          class="${TILE} bg-surface border border-white/10"
+          >${translateText("mineclash.history_title")}</a
+        >
       </div>
     </div>`;
   }

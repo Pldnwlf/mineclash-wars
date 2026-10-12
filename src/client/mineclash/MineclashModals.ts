@@ -6,6 +6,7 @@ import { BaseModal } from "../components/BaseModal";
 import { modalHeader } from "../components/ui/ModalHeader";
 import { renderMarkdown } from "../Markdown";
 import { translateText } from "../Utils";
+import "./HistoryList";
 import { renderLegalLinks, renderRules } from "./RulesContent";
 
 const PROSE =
@@ -49,6 +50,26 @@ export class RulesModal extends BaseModal {
     return html`<div class="overflow-y-auto ${PROSE}">
       ${renderRules()}
       <div class="mt-6">${renderLegalLinks()}</div>
+    </div>`;
+  }
+}
+
+// mineclash #40: Match-Historie
+@customElement("history-modal")
+export class HistoryModal extends BaseModal {
+  protected routerName = "history";
+
+  protected renderHeaderSlot() {
+    return modalHeader({
+      title: translateText("mineclash.history_title"),
+      onBack: () => this.close(),
+      ariaLabel: translateText("common.back"),
+    });
+  }
+
+  protected renderBody() {
+    return html`<div class="overflow-y-auto">
+      <history-list></history-list>
     </div>`;
   }
 }
