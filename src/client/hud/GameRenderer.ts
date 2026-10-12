@@ -13,6 +13,7 @@ import { ViewModeController } from "../controllers/ViewModeController";
 import { WarshipSelectionController } from "../controllers/WarshipSelectionController";
 import { GameStartingModal } from "../GameStartingModal";
 import { migrateLegacyGraphicsSettings } from "../GraphicsPresets";
+import { HudVisibilityController } from "../mineclash/HudVisibilityController";
 import { MapRenderer } from "../render/gl";
 import { TransformHandler } from "../TransformHandler";
 import { UIState } from "../UIState";
@@ -332,6 +333,7 @@ export function createRenderer(
     new AttackingTroopsController(game, eventBus, userSettings, view),
     new SoundEffectController(game, eventBus),
     new AmbienceController(game, eventBus, transformHandler),
+    new HudVisibilityController(eventBus, userSettings), // mineclash #16
     ...(mapLayerController ? [mapLayerController] : []),
     eventsDisplay,
     actionableEvents,

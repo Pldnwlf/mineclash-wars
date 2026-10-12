@@ -89,6 +89,9 @@ export class AlternateViewEvent implements GameEvent {
 
 export class CloseViewEvent implements GameEvent {}
 
+// mineclash #16
+export class ToggleHudEvent implements GameEvent {}
+
 export class RefreshGraphicsEvent implements GameEvent {}
 
 export class ToggleRenderDebugGuiEvent implements GameEvent {}
@@ -406,6 +409,9 @@ export class InputHandler {
     this.addKeybindAndEvent(this.keybinds.toggleView, () => {
       this.alternateView = false;
       this.eventBus.emit(new AlternateViewEvent(false));
+    });
+    this.addKeybindAndEvent(this.keybinds.hideInterface ?? "KeyH", () => {
+      this.eventBus.emit(new ToggleHudEvent()); // mineclash #16
     });
     const resetKey = this.keybinds.resetGfx ?? "KeyR";
     this.addKeybindAndEvent(
