@@ -1518,6 +1518,8 @@
     "stake_2": "Der Gewinner bekommt den ganzen Topf abzüglich 5 % Rake. Die Rake wird verbrannt, ein Rundungsrest wird mit verbrannt.",
     "stake_3": "Die Auszahlung erfolgt sofort nach der Prüfung des Ergebnisses durch den Server. Es gibt keinen zusätzlichen Zufall ums Geld: Angriffe, Spawn und Nationen laufen wie in einem normalen Match.",
     "stake_title": "Einsatz und Topf",
+    "threshold": "Sieg: {percent} %",
+    "threshold_overtime": "Sieg: {percent} % · Overtime",
     "win_1": "Nur Menschen können gewinnen. Nationen und Bots zählen nicht. Der letzte Mensch mit Gebiet gewinnt.",
     "win_2": "Ein Mensch gewinnt auch mit 80 % des Landes. Ab Minute 15 beginnt die Overtime, der nötige Anteil sinkt um 1 % pro Minute. Bei Minute 25 (70 %) ist Schluss und der Mensch mit dem meisten Land gewinnt.",
     "win_3": "Bei Gleichstand wird der Topf zu gleichen Teilen geteilt. In Team-Modi teilt das Gewinnerteam gleichmässig.",

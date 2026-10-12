@@ -12,6 +12,7 @@ import { crazyGamesSDK } from "../../CrazyGamesSDK";
 import { isDesktopShell } from "../../DesktopShell";
 import { showInGameAlert, showInGameConfirm } from "../../InGameModal";
 import { TogglePauseIntentEvent } from "../../InputHandler";
+import { endTimerMinutes, thresholdText } from "../../mineclash/MatchClock";
 import { PauseGameIntentEvent, SendWinnerEvent } from "../../Transport";
 import { homeHref, showToast, translateText } from "../../Utils";
 import { GameView } from "../../view";
@@ -177,7 +178,7 @@ export class GameRightSidebar extends LitElement implements Controller {
       return;
     }
 
-    const maxTimerValue = this.game.config().gameConfig().maxTimerValue;
+    const maxTimerValue = endTimerMinutes(this.game.config().gameConfig());
     if (maxTimerValue !== null && maxTimerValue !== undefined) {
       this.timer = Math.max(0, maxTimerValue * 60 - elapsedSeconds);
       this.maybeShowOneMinuteWarning();
@@ -309,7 +310,7 @@ export class GameRightSidebar extends LitElement implements Controller {
   render() {
     if (this.game === undefined) return html``;
 
-    const maxTimerValue = this.game.config().gameConfig().maxTimerValue;
+    const maxTimerValue = endTimerMinutes(this.game.config().gameConfig());
     const isEndTimerActive =
       maxTimerValue !== undefined &&
       maxTimerValue !== null &&
@@ -322,6 +323,10 @@ export class GameRightSidebar extends LitElement implements Controller {
     const shouldFlashSidebar =
       isEndTimerActive && this.timer <= FLASH_SIDEBAR_SECONDS;
 
+    const threshold = thresholdText(
+      this.game.config().gameConfig(),
+      this.game.elapsedGameSeconds(),
+    );
     const timerClass = shouldFlashTimer
       ? "game-end-timer-flash"
       : isLastMinute
@@ -414,6 +419,14 @@ export class GameRightSidebar extends LitElement implements Controller {
           <img src=${exitIcon} alt="exit" width="20" height="20" />
         </div>
       </aside>
+      ${threshold
+        ? html`<div
+            data-mineclash-threshold
+            class="text-xs text-white/80 bg-gray-800/70 rounded px-2 py-0.5"
+          >
+            ${threshold}
+          </div>`
+        : ""}
       <doomsday-clock-panel
         .game=${this.game}
         .hasWinner=${this.hasWinner}
