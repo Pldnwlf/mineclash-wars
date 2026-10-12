@@ -5,7 +5,7 @@ import {
   MessageType,
 } from "../../core/game/Game";
 
-const STORAGE_KEY = "mineclash.eventFilters";
+const STORAGE_KEY = "mineclash-eventFilters";
 
 // Order = order of the filter icons.
 export const FILTER_CATEGORIES: readonly MessageCategory[] = [

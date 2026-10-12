@@ -377,9 +377,12 @@ export class GameRightSidebar extends LitElement implements Controller {
         <!-- In-game time -->
         <div
           data-game-timer
-          class="${timerClass} ${this.timerHighlighted
-            ? "tutorial-highlight px-1"
-            : ""}"
+          class="${[
+            timerClass,
+            this.timerHighlighted ? "tutorial-highlight px-1" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}"
         >
           ${this.secondsToHms(this.timer)}
         </div>
