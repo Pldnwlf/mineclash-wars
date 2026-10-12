@@ -22,6 +22,7 @@ import {
 import { logger } from "./Logger";
 import { MapPlaylist } from "./MapPlaylist";
 import { MasterLobbyService } from "./MasterLobbyService";
+import { startKumaPush } from "./MineclashAlerts";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { startPolling } from "./PollingLoop";
 import { renderAppShell } from "./RenderHtml";
@@ -201,6 +202,9 @@ export async function startMaster() {
     lobbyService.attachCoordinator(client);
     client.start();
   }
+
+  // mineclash #43: Kuma-Lebenszeichen (nur mit env)
+  startKumaPush(() => lobbyService.isHealthy());
 
   // Fork workers
   for (let i = 0; i < ServerEnv.numWorkers(); i++) {
