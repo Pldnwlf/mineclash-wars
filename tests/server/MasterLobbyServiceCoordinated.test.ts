@@ -208,9 +208,9 @@ describe("MasterLobbyService with a lobby coordinator", () => {
 
     coordinator.coordinated = false;
     await scheduler()();
-    // Local: countdown for own front lobby, and creates to fill the queue.
+    // Local: countdown for own front lobby, and the free rotation (no wallet => no stake lobby).
     expect(sent(worker, "updateLobby")).toHaveLength(1);
-    expect(sent(worker, "createGame")).toHaveLength(3);
+    expect(sent(worker, "createGame")).toHaveLength(1);
     await broadcaster()();
     const [b] = sent(worker, "lobbiesBroadcast");
     // Foreign lobbies are dropped from the feed: the coordinator that

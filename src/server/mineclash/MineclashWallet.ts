@@ -267,6 +267,32 @@ export class MineclashWallet {
     this.holds.delete(matchId);
   }
 
+  /** #23: Tageskurs (W$ je Coin), 10 Min gecacht; null = Wallet nicht erreichbar. */
+  private rateCache?: { wd: number; at: number };
+  async wdPerCoin(): Promise<number | null> {
+    if (this.rateCache && this.now() - this.rateCache.at < 600_000)
+      return this.rateCache.wd;
+    try {
+      const wd = (await this.o.api.rate()).wd_per_coin;
+      this.rateCache = { wd, at: this.now() };
+      return wd;
+    } catch (e) {
+      log.warn(`rate failed: ${(e as Error).message}`);
+      return this.rateCache?.wd ?? null;
+    }
+  }
+
+  /** #23: Guthaben (Coins: balance = held+available) oder null. */
+  async balanceOf(
+    uuid: string,
+  ): Promise<{ balance: number; available: number } | null> {
+    try {
+      return await this.o.api.balance(uuid);
+    } catch {
+      return null;
+    }
+  }
+
   stakesOf(matchId: string): Record<string, number> {
     return Object.fromEntries(this.holds.get(matchId) ?? []);
   }

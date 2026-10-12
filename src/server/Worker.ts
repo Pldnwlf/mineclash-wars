@@ -33,16 +33,23 @@ import { z } from "zod";
 import { registerAdminBotRoutes } from "./AdminBotRoutes";
 import { censorPlayer } from "./Censor";
 import { Client } from "./Client";
+import { hostCheatsEnabled } from "./ConfigPatch";
 import { gameApiCors } from "./GameApiCors";
 import { GameManager } from "./GameManager";
 import { registerGamePreviewRoute } from "./GamePreviewRoute";
-import { GamePhase, type GameServer } from "./GameServer";
+import { GamePhase, hashPersistentID, type GameServer } from "./GameServer";
 import { isSteamAuthenticated, planJoinVerify, verifyJoin } from "./JoinVerify";
 import { getUserMe, userMeFailureClose, verifyClientToken } from "./jwt";
 import { levelBadgeForPlayer } from "./LevelBadge";
 import { payForLobbyQueue, queueListedLobby } from "./LobbyQueuePayment";
 import { logger } from "./Logger";
 import { isGuestClaims, mineclashIdentity } from "./mineclash/Identity";
+import {
+  acceptRules,
+  CUSTOM_STAKE_END_MINUTES,
+  statusResponse,
+  validateStakeCreate,
+} from "./mineclash/MineclashStake";
 import { getWallet } from "./mineclash/MineclashWallet";
 import { resolveVerifiedJoin } from "./Privilege";
 
@@ -53,7 +60,7 @@ import {
   startArchiveCleanup,
 } from "./MineclashArchive";
 import { historyResponse, startHistoryCleanup } from "./MineclashHistory";
-import { postMatchReport } from "./MineclashReports";
+import { postMatchReport, toUuid } from "./MineclashReports";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { PrivilegeRefresher } from "./PrivilegeRefresher";
 import { startRankedCheckinLoops } from "./RankedCheckin";
@@ -209,11 +216,19 @@ export async function startWorker() {
     }
     const creatorPersistentID = auth.persistentId;
 
-    const parsed = CreateGameInputSchema.safeParse(req.body);
+    // mineclash #23: mineclashStakeCoins is the only way to ask for a stake;
+    // the schema itself never accepts mineclashStake/mineclashRules from clients.
+    const { mineclashStakeCoins, ...bodyRest } = (req.body ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const parsed = CreateGameInputSchema.safeParse(
+      mineclashStakeCoins === undefined ? req.body : bodyRest,
+    );
     if (!parsed.success) {
       return res.status(400).json({ error: z.prettifyError(parsed.error) });
     }
-    const gc = parsed.data;
+    let gc = parsed.data;
     // Only private games are created here. Public games are scheduled by the
     // master over IPC, and singleplayer games run in the browser, never on a
     // game server. An empty body ({}) parses to undefined and gets
@@ -268,6 +283,33 @@ export async function startWorker() {
       // through and gets replaced by a fresh lobby.
     }
 
+    // mineclash #23: custom stake lobby. Server-side checks, always listed.
+    if (mineclashStakeCoins !== undefined) {
+      const creatorHash = hashPersistentID(creatorPersistentID);
+      const checked = await validateStakeCreate({
+        coins: mineclashStakeCoins,
+        claims: auth.claims,
+        persistentId: creatorPersistentID,
+        config: gc,
+        wallet: getWallet(),
+        hostCheatsOn: hostCheatsEnabled(gc?.hostCheats),
+        listingError: () =>
+          lobbyService.creatorHasListedLobby(creatorHash, "")
+            ? "listing_limit_reached"
+            : lobbyService.hostedLobbyCount() >= MAX_HOSTED_LOBBIES
+              ? "listing_full"
+              : null,
+      });
+      if ("error" in checked) {
+        return res.status(checked.status).json({ error: checked.error });
+      }
+      gc = {
+        ...gc,
+        mineclashStake: { coins: checked.coins },
+        mineclashRules: { endMinutes: CUSTOM_STAKE_END_MINUTES },
+      } as typeof gc;
+    }
+
     const id = ServerEnv.generateGameIdForWorker(workerId);
     if (id === null) {
       log.warn(`Failed to mint game id on worker ${workerId}`);
@@ -279,6 +321,8 @@ export async function startWorker() {
       log.warn(`cannot create game, id ${id} already exists`);
       return res.status(409).json({ error: "Game ID already exists" });
     }
+    // Stake lobbies are always public in the lobby browser (no subscription check).
+    if (mineclashStakeCoins !== undefined) game.setListed(true);
 
     // Tell the previous game about its successor: it remembers the id (for
     // idempotency) and broadcasts it to everyone still connected. Done after
@@ -536,6 +580,30 @@ export async function startWorker() {
       log.error(`history read failed: ${e}`);
       res.status(500).json({ error: "History error" });
     }
+  });
+  // mineclash #23/#31: wallet state + rules consent. JWT optional for status.
+  app.get("/api/mineclash/status", async (req, res) => {
+    const token = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
+    const auth = token ? await verifyClientToken(token) : null;
+    res.json(
+      await statusResponse(
+        getWallet(),
+        auth?.type === "success"
+          ? { persistentId: auth.persistentId, claims: auth.claims }
+          : null,
+      ),
+    );
+  });
+  app.post("/api/mineclash/rules-accept", async (req, res) => {
+    const token = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
+    const auth = await verifyClientToken(token);
+    if (auth.type !== "success")
+      return res.status(401).json({ error: "Invalid token" });
+    if (auth.claims === null || isGuestClaims(auth.claims))
+      return res.status(403).json({ error: "stake_guest" });
+    acceptRules(toUuid(auth.persistentId));
+    res.json({ ok: true });
   });
   if (workerId === 0) {
     startArchiveCleanup();
