@@ -567,6 +567,15 @@ export interface Game extends GameLike {
     winner: Player | Team | null,
     allPlayersStats: AllPlayersStats,
   ): void;
+  // mineclash #9: shared human win (ties / winning team). `team` is set in
+  // team modes (wire ["team", team, ...ids]), else ["player", ...ids].
+  setHumanWinners(
+    winners: Player[],
+    team: Team | null,
+    allPlayersStats: AllPlayersStats,
+  ): void;
+  // mineclash #9: game decided, no human won (wire ["none"], stakes refunded).
+  setNoHumanWinner(allPlayersStats: AllPlayersStats): void;
   getWinner(): Player | Team | null;
   config(): EngineConfig;
   isPaused(): boolean;

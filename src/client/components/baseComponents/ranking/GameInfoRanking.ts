@@ -119,8 +119,10 @@ export class Ranking {
       winnerBlock.length > 0
     ) {
       if (winnerBlock[0] === "player") {
-        const id = winnerBlock[1];
-        if (players[id]) players[id].winner = true;
+        // mineclash #9: shared win lists several ids.
+        for (const id of winnerBlock.slice(1)) {
+          if (players[id]) players[id].winner = true;
+        }
       } else if (winnerBlock[0] === "team") {
         // First element is the team color, which we don't care for
         for (let i = 2; i < winnerBlock.length; i++) {

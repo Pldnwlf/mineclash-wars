@@ -21,6 +21,7 @@ import { ScheduledPublicGameType } from "@openfront/shared/WireSchemas";
 import { logger } from "./Logger";
 import { getMapLandTiles } from "./MapLandTiles";
 import { MINECLASH_ROTATION } from "./MineclashMaps";
+import { applyMineclashRotationPreset } from "./MineclashPreset";
 
 const log = logger.child({});
 
@@ -138,7 +139,10 @@ export class MapPlaylist {
   public async gameConfig(type: ScheduledPublicGameType): Promise<GameConfig> {
     this.scheduled++;
     const trusted = this.scheduled % TRUSTED_PUBLIC_EVERY === 0;
-    const config = await this.rollConfig(type, trusted);
+    // mineclash #9: every rotation lobby gets the rules preset.
+    const config = applyMineclashRotationPreset(
+      await this.rollConfig(type, trusted),
+    );
     if (trusted) {
       config.trusted = true;
     }

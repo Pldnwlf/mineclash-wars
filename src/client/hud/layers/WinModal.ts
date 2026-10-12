@@ -625,6 +625,14 @@ export class WinModal extends LitElement implements Controller {
         this.isWin = false;
         history.replaceState(null, "", `${window.location.pathname}?replay`);
         this.show();
+      } else if (wu.winner[0] === "none") {
+        // mineclash #9: game decided, no human won (stakes refunded).
+        this.eventBus.emit(new SendWinnerEvent(wu.winner, wu.allPlayersStats));
+        this._title = translateText("win_modal.no_human_winner");
+        this.isWin = false;
+        this.playEndOfGameSound();
+        history.replaceState(null, "", `${window.location.pathname}?replay`);
+        this.show();
       } else if (wu.winner[0] === "team") {
         this.eventBus.emit(new SendWinnerEvent(wu.winner, wu.allPlayersStats));
         if (wu.winner[1] === this.game.myPlayer()?.team()) {
@@ -651,19 +659,25 @@ export class WinModal extends LitElement implements Controller {
       } else {
         const winner = this.game.playerByClientID(wu.winner[1]);
         if (!winner?.isPlayer()) return;
-        const winnerClient = winner.clientID();
-        if (winnerClient !== null) {
-          this.eventBus.emit(
-            new SendWinnerEvent(["player", winnerClient], wu.allPlayersStats),
-          );
-        }
+        // mineclash #9: ids = all winners (shared win on a tie).
+        const ids = wu.winner.slice(1);
+        this.eventBus.emit(new SendWinnerEvent(wu.winner, wu.allPlayersStats));
+        const myClient = this.game.myPlayer()?.clientID();
         if (
-          winnerClient !== null &&
-          winnerClient === this.game.myPlayer()?.clientID()
+          myClient !== undefined &&
+          myClient !== null &&
+          ids.includes(myClient)
         ) {
           this._title = translateText("win_modal.you_won");
           this.isWin = true;
           crazyGamesSDK.happytime();
+        } else if (ids.length > 1) {
+          this._title = translateText("win_modal.shared_win", {
+            players: ids
+              .map((id) => this.game.playerByClientID(id)?.displayName() ?? id)
+              .join(", "),
+          });
+          this.isWin = false;
         } else {
           this._title = translateText("win_modal.other_won", {
             player: winner.displayName(),
