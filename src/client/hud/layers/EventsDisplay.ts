@@ -2,8 +2,13 @@ import { html, LitElement } from "lit";
 import { customElement, query, state } from "lit/decorators.js";
 import { DirectiveResult } from "lit/directive.js";
 import { unsafeHTML, UnsafeHTMLDirective } from "lit/directives/unsafe-html.js";
+import { assetUrl } from "../../../core/AssetUrls";
 import { EventBus } from "../../../core/EventBus";
-import { AllPlayers, MessageType } from "../../../core/game/Game";
+import {
+  AllPlayers,
+  MessageCategory,
+  MessageType,
+} from "../../../core/game/Game";
 import {
   AllianceExpiredUpdate,
   AllianceRequestReplyUpdate,
@@ -19,6 +24,12 @@ import {
 import { UserSettings } from "../../../core/game/UserSettings";
 import { Controller } from "../../Controller";
 import { SendAllianceRequestIntentEvent } from "../../Transport";
+import {
+  FILTER_CATEGORIES,
+  isTypeShown,
+  loadHiddenCategories,
+  saveHiddenCategories,
+} from "../EventFilters";
 
 import { onlyImages } from "../../../core/Util";
 import { GoToPlayerEvent, GoToUnitEvent } from "../../TransformHandler";
@@ -60,6 +71,15 @@ const TIER_1_TYPES: ReadonlySet<MessageType> = new Set([
   MessageType.DONATION_RECEIVED,
 ]);
 
+// mineclash #13: filter bar icons
+const FILTER_ICONS: Record<MessageCategory, string> = {
+  [MessageCategory.ATTACK]: "images/SwordIconWhite.svg",
+  [MessageCategory.NUKE]: "images/NukeIconWhite.svg",
+  [MessageCategory.TRADE]: "images/DonateGoldIconWhite.svg",
+  [MessageCategory.ALLIANCE]: "images/AllianceIconWhite.svg",
+  [MessageCategory.CHAT]: "images/ChatIconWhite.svg",
+};
+
 const isTier1 = (type: MessageType): boolean => TIER_1_TYPES.has(type);
 
 @customElement("events-display")
@@ -73,6 +93,9 @@ export class EventsDisplay extends LitElement implements Controller {
   private userSettings = new UserSettings();
 
   @state() private _isVisible: boolean = false;
+  // mineclash #13
+  @state() private _logHidden = false;
+  @state() private hiddenCategories = loadHiddenCategories();
 
   @query(".events-container")
   private _eventsContainer?: HTMLDivElement;
@@ -91,6 +114,45 @@ export class EventsDisplay extends LitElement implements Controller {
       this._importantEventsContainer.scrollTop =
         this._importantEventsContainer.scrollHeight;
     }
+  }
+
+  private toggleCategory(c: MessageCategory) {
+    const next = new Set(this.hiddenCategories);
+    if (!next.delete(c)) next.add(c);
+    this.hiddenCategories = next;
+    saveHiddenCategories(next);
+  }
+
+  private renderFilterBar() {
+    return html`
+      <div
+        class="flex justify-between items-center p-2 rounded-lg bg-gray-800/70 backdrop-blur-sm pointer-events-auto"
+      >
+        <div class="flex gap-3">
+          ${FILTER_CATEGORIES.map((c) => {
+            const off = this.hiddenCategories.has(c);
+            return html`<button
+              class="cursor-pointer"
+              title=${translateText(`events_display.filter_${c.toLowerCase()}`)}
+              aria-pressed=${!off}
+              @click=${() => this.toggleCategory(c)}
+            >
+              <img
+                src=${assetUrl(FILTER_ICONS[c])}
+                class="w-5 h-5"
+                style="filter: ${off ? "grayscale(1) opacity(0.4)" : "none"}"
+              />
+            </button>`;
+          })}
+        </div>
+        <button
+          class="text-white text-sm cursor-pointer"
+          @click=${() => (this._logHidden = true)}
+        >
+          ${translateText("events_display.hide")}
+        </button>
+      </div>
+    `;
   }
 
   private renderButton(options: {
@@ -665,22 +727,25 @@ export class EventsDisplay extends LitElement implements Controller {
     const tier1Events: GameEvent[] = [];
     let tier2Events: GameEvent[] = [];
     for (const event of this.events) {
+      if (!isTypeShown(this.hiddenCategories, event.type)) continue;
       (isTier1(event.type) ? tier1Events : tier2Events).push(event);
     }
     tier1Events.sort((a, b) => a.createdAt - b.createdAt);
     tier2Events.sort((a, b) => a.createdAt - b.createdAt);
     tier2Events = tier2Events.slice(-4);
 
-    if (
-      tier1Events.length === 0 &&
-      tier2Events.length === 0 &&
-      !showBetrayalTimer
-    ) {
-      return html``;
+    if (this._logHidden) {
+      return html`<button
+        class="text-white cursor-pointer pointer-events-auto p-2 rounded-lg bg-gray-800/70 backdrop-blur-sm"
+        @click=${() => (this._logHidden = false)}
+      >
+        ${translateText("events_display.show")}
+      </button>`;
     }
 
     return html`
       <div class="flex flex-col gap-1 w-full min-[1200px]:w-96">
+        ${this.renderFilterBar()}
         ${tier2Events.length > 0
           ? html`
               <div
