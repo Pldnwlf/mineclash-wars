@@ -1593,6 +1593,20 @@
     "tps": "TPS:",
     "tps_avg_60s": "Avg:"
   },
+  "player_info_overlay": {
+    "allied": "Allied",
+    "attacking": "Attacking",
+    "cities": "Cities",
+    "factories": "Factories",
+    "gold": "Gold",
+    "ports": "Ports",
+    "relation": "Relation",
+    "sams": "SAM Sites",
+    "silos": "Missile Silos",
+    "troops": "Troops",
+    "type": "Type",
+    "warships": "Warships"
+  },
   "player_panel": {
     "active": "Active",
     "alliance_time_remaining": "Alliance Expires In",

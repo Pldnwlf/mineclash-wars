@@ -1483,6 +1483,20 @@
     "tps": "TPS:",
     "tps_avg_60s": "Durchschn:"
   },
+  "player_info_overlay": {
+    "allied": "Verbündet",
+    "attacking": "Angreifend",
+    "cities": "Städte",
+    "factories": "Fabriken",
+    "gold": "Gold",
+    "ports": "Häfen",
+    "relation": "Beziehung",
+    "sams": "SAM",
+    "silos": "Raketensilos",
+    "troops": "Truppen",
+    "type": "Typ",
+    "warships": "Kriegsschiffe"
+  },
   "player_panel": {
     "active": "Aktiv",
     "alliance_time_remaining": "Allianz endet in",
