@@ -204,7 +204,11 @@ describe("MasterLobbyService with a lobby coordinator", () => {
       },
       delistGameIDs: [],
     });
-    worker.emit("message", { type: "lobbyList", lobbies: [lobby("OWN1")] });
+    // mineclash #23: ffa = stake rotation, countdown only from 2 humans.
+    worker.emit("message", {
+      type: "lobbyList",
+      lobbies: [lobby("OWN1", "ffa", { numClients: 2 })],
+    });
 
     coordinator.coordinated = false;
     await scheduler()();

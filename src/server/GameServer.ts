@@ -1004,7 +1004,7 @@ export class GameServer {
   // true when too few matched players connected.
   public cancelShortHandedMatch(): boolean {
     // mineclash #23: a stake lobby needs >= 2 humans, else every stake is freed.
-    if (this.stake && this.playerCount() < 2) return this.cancelStakeLobby();
+    if (this.stake && this.playerCount() < 2) return this.stakeShortHanded();
     // Explicitly 1v1/2v2/FFA only — a future ranked type must opt in rather
     // than inherit pre-start cancellation.
     const rankedType = this.gameConfig.rankedType;
@@ -1098,6 +1098,14 @@ export class GameServer {
       void this.stake!.release(client.persistentID);
   }
 
+  // < 2 humans at the start deadline. Rotation: keep waiting, the master
+  // re-arms the countdown at 2 humans. Hosted: close the lobby.
+  private stakeShortHanded(): boolean {
+    if (!this.isPublic()) return this.cancelStakeLobby();
+    this.startsAt = undefined;
+    return true;
+  }
+
   // Kicks everyone, frees all stakes and closes the lobby.
   private cancelStakeLobby(): boolean {
     this.log.info("cancelling stake lobby, fewer than 2 humans", {
@@ -1122,7 +1130,7 @@ export class GameServer {
       }
     }
     if (this.playerCount() < 2) {
-      this.cancelStakeLobby();
+      this.stakeShortHanded();
       return false;
     }
     void this.stake!.releaseExcept(this.clients.players());

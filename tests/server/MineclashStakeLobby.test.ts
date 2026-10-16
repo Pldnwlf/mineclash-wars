@@ -228,8 +228,20 @@ describe("Beitritt", () => {
 });
 
 describe("Start / Abbruch", () => {
-  test("< 2 Menschen: releaseAll, Lobby verfaellt", async () => {
+  test("Rotation < 2 Menschen: wartet weiter, Einsatz bleibt gehalten", async () => {
     const { game, id } = stakeGame();
+    const { c, uuid } = acct();
+    game.joinClient(c);
+    await until(() => heldCount(id) === 1);
+    game.setStartsAt(Date.now() - 1);
+    expect(game.cancelShortHandedMatch()).toBe(true);
+    expect(game.phase()).toBe("LOBBY");
+    expect(bal(uuid).held).toBe(STAKE);
+    expect(lastError(c)).toBeUndefined();
+  });
+
+  test("Custom < 2 Menschen: releaseAll, Lobby verfaellt", async () => {
+    const { game, id } = stakeGame({ gameType: GameType.Private });
     const { c, uuid } = acct();
     game.joinClient(c);
     await until(() => heldCount(id) === 1);

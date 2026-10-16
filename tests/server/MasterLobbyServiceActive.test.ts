@@ -128,7 +128,7 @@ describe("MasterLobbyService inactive deployment still starts queued lobbies", (
         {
           gameID: "QUEUED01",
           publicGameType: "ffa",
-          numClients: 0,
+          numClients: 2, // mineclash #23: stake countdown from 2 humans
           createdAt: 1,
         },
       ],

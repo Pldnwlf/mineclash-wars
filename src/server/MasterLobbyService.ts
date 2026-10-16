@@ -477,7 +477,11 @@ export class MasterLobbyService {
       // either receives a startsAt (IPC round-trip delay), leaving both stuck
       // without a countdown.
       const nextLobby = lobbies[0];
-      if (nextLobby && nextLobby.startsAt === undefined) {
+      // Stake: no countdown before 2 humans are in, else a lone player is
+      // kicked every cycle and two never meet (mineclash #23).
+      const waiting =
+        type === STAKE_ROTATION && (nextLobby?.numClients ?? 0) < 2;
+      if (nextLobby && nextLobby.startsAt === undefined && !waiting) {
         this.sendMessageToWorker({
           type: "updateLobby",
           gameID: nextLobby.gameID,

@@ -138,10 +138,14 @@ export class MineclashMenu extends LitElement {
   }
 
   private ring(lobby: PublicGameInfo) {
+    // No countdown yet: stake rotation waits for 2 humans (#23).
     const left = lobby.startsAt
       ? getSecondsUntilServerTimestamp(lobby.startsAt, this.serverTimeOffset)
-      : this.defaultLobbyTime;
-    const frac = ringFraction(left, Math.max(this.defaultLobbyTime, left));
+      : null;
+    const frac =
+      left === null
+        ? 0
+        : ringFraction(left, Math.max(this.defaultLobbyTime, left));
     return html`<span
       class="relative flex size-24 shrink-0 items-center justify-center"
     >
@@ -169,11 +173,15 @@ export class MineclashMenu extends LitElement {
       <span class="relative flex flex-col items-center gap-0.5">
         <span
           class="text-[22px] font-extrabold leading-none tabular-nums text-white"
-          >${left}s</span
+          >${left === null ? "…" : `${left}s`}</span
         >
         <span
           class="text-[10px] font-bold uppercase tracking-wider text-white/55"
-          >${translateText("mineclash.menu_starts_in")}</span
+          >${translateText(
+            left === null
+              ? "mineclash.menu_waiting"
+              : "mineclash.menu_starts_in",
+          )}</span
         >
       </span>
     </span>`;
@@ -249,7 +257,12 @@ export class MineclashMenu extends LitElement {
         </div>
         <div class="flex items-end justify-between gap-3">
           <div class="flex min-w-0 flex-1 flex-col gap-2">
-            ${label}
+            ${isJoined
+              ? html`<span
+                  class="text-[13px] font-bold uppercase tracking-wider text-mc [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]"
+                  >${translateText("mineclash.menu_joined")}</span
+                >`
+              : label}
             <span
               class="truncate text-3xl font-bold leading-tight text-white/95 [text-shadow:0_0_2px_rgba(0,0,0,0.8),0_1px_3px_rgba(0,0,0,0.6)]"
               >${getMapName(map)}</span
@@ -286,13 +299,6 @@ export class MineclashMenu extends LitElement {
           ${this.ring(lobby)}
         </div>
       </div>
-      ${isJoined
-        ? html`<span
-            class="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-mc/90 py-1 text-center text-sm font-bold uppercase tracking-widest text-gray-900"
-          >
-            ${translateText("mineclash.menu_joined")}
-          </span>`
-        : nothing}
     </button>`;
   }
 
