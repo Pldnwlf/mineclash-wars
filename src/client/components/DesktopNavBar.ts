@@ -1,6 +1,7 @@
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { LitElement, html } from "lit";
 import { customElement } from "lit/decorators.js";
+import "../mineclash/AccountChip";
 import { Features } from "../mineclash/Features";
 import "../mineclash/menu/PlayerOfTheDay";
 import "../mineclash/menu/SideNav";
@@ -78,7 +79,9 @@ export class DesktopNavBar extends LitElement {
           ${Features.upstreamMenu
             ? html`<nav-utility-icons size="desktop"></nav-utility-icons>`
             : null}
-          <nav-account-menu variant="desktop"></nav-account-menu>
+          ${Features.openfrontAuth
+            ? html`<nav-account-menu variant="desktop"></nav-account-menu>`
+            : html`<mineclash-account-chip></mineclash-account-chip>`}
         </div>
       </nav>
       <mineclash-side-nav></mineclash-side-nav>

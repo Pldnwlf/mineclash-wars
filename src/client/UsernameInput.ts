@@ -8,6 +8,7 @@ import { checkClanTagOwnership } from "./ClanApi";
 import { verifiedBadge } from "./components/ui/VerifiedBadge";
 import { crazyGamesSDK } from "./CrazyGamesSDK";
 import { showInGameAlert, showInGameConfirm } from "./InGameModal";
+import { Features } from "./mineclash/Features";
 import {
   accountNameHeld,
   accountVerifiedName,
@@ -334,12 +335,15 @@ export class UsernameInput extends LitElement {
   // opt-in the player never expressed is a different thing, and it is the
   // value account-level settings sync would later propagate.
   private applyVerifiedPreference() {
+    // mineclash #21: MC-Name ist fix, kein Umschalten.
+    const mcLocked = !Features.openfrontAuth;
     this.verifiedActive =
       !this.onCrazyGames &&
-      verifiedNameOptIn(
-        localStorage.getItem(useVerifiedNameKey),
-        localStorage.getItem(verifiedDefaultAllowedKey) === "true",
-      ) &&
+      (mcLocked ||
+        verifiedNameOptIn(
+          localStorage.getItem(useVerifiedNameKey),
+          localStorage.getItem(verifiedDefaultAllowedKey) === "true",
+        )) &&
       this.verifiedName() !== null;
     this.refreshClaimGrace();
     this.requestUpdate();
@@ -1023,9 +1027,11 @@ export class UsernameInput extends LitElement {
            is transparent and left-aligned, so only its invisible right edge
            moves. -->
       <div class="no-crazygames shrink-0 h-full max-h-[44px]">
-        ${this.verifiedActive
-          ? this.renderUseCustomButton()
-          : this.renderUseVerifiedButton()}
+        ${!Features.openfrontAuth
+          ? "" /* mineclash #21: MC-Name fix, Gäste ohne Verified-Knopf */
+          : this.verifiedActive
+            ? this.renderUseCustomButton()
+            : this.renderUseVerifiedButton()}
       </div>
     `;
   }

@@ -62,6 +62,7 @@ import {
 } from "./Auth";
 import { ClientEnv } from "./ClientEnv";
 import { Features } from "./mineclash/Features";
+import { userMeFromClaims } from "./mineclash/UserMe";
 import { ensureServerList } from "./ServerList";
 import { UserSettings } from "./UserSettings";
 
@@ -225,6 +226,11 @@ async function requestUserMe(): Promise<{
     const userAuthResult = await userAuth();
     if (!userAuthResult) return { profile: false, aborted: false };
     const { jwt, claims } = userAuthResult;
+    if (!Features.openfrontAuth) {
+      const profile = userMeFromClaims(claims); // mineclash #21
+      UserSettings.setPlayerId(profile.player.publicId);
+      return { profile, aborted: false };
+    }
 
     // Get the user object. Bounded like the other auth calls (see
     // Auth.ts doSteamLogin) because getUserMe memoises the promise around
