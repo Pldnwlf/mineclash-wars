@@ -1191,8 +1191,9 @@ export class GameImpl implements Game {
     unitID: number,
     message: string,
     type: MessageType,
-    playerID: PlayerID,
+    playerID: PlayerID | null,
   ): void {
+    if (playerID === null) return;
     const id = this.player(playerID).smallID();
 
     this.addUpdate({
