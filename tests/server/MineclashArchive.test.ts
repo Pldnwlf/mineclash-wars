@@ -1,8 +1,8 @@
+import { GameRecord } from "@openfront/shared/WireSchemas";
 import { promises as fs } from "fs";
 import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { GameRecord } from "@openfront/shared/WireSchemas";
 import {
   cleanupArchive,
   FREE_RETENTION_MS,
@@ -59,6 +59,14 @@ describe("MineclashArchive", () => {
     await fs.utimes(path.join(dir, "oldold12.json.gz"), old, old);
     expect(await cleanupArchive()).toBe(1);
     expect(await fs.readdir(dir)).toEqual(["newnew12.json.gz"]);
+  });
+
+  test("Einsatz-Match wird als .stake abgelegt (#49)", async () => {
+    const r = rec("stake999");
+    (r.info.config as any).mineclashStake = { coins: 10 };
+    await writeMatchRecord(r);
+    expect(await fs.readdir(dir)).toEqual(["stake999.stake.json.gz"]);
+    expect(await readMatchRecord("stake999")).toEqual(r);
   });
 
   test("stake files live 90 days", async () => {

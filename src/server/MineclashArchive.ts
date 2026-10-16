@@ -1,11 +1,11 @@
 // mineclash #29: eigene Replay-Ablage (statt closed-source API). Eine
 // gzip-JSON-Datei pro Match in MINECLASH_ARCHIVE_DIR.
+import { GameID, ID } from "@openfront/engine-api/Schemas";
+import { replacer } from "@openfront/shared/SharedUtil";
+import { GameRecord } from "@openfront/shared/WireSchemas";
 import { promises as fs } from "fs";
 import path from "path";
 import { gunzipSync, gzipSync } from "zlib";
-import { GameID, ID } from "@openfront/engine-api/Schemas";
-import { GameRecord } from "@openfront/shared/WireSchemas";
-import { replacer } from "@openfront/shared/SharedUtil";
 
 export const FREE_RETENTION_MS = 7 * 24 * 3600 * 1000;
 export const STAKE_RETENTION_MS = 90 * 24 * 3600 * 1000;
@@ -15,10 +15,9 @@ export function archiveDir(): string {
   return process.env.MINECLASH_ARCHIVE_DIR ?? "./data/archive";
 }
 
-// mineclash #23: noch kein Einsatz-Flag am Match; hier einhaengen, sobald es
-// existiert (Einsatz-Matches 90 Tage statt 7).
-export function isStakeMatch(_record: GameRecord): boolean {
-  return false;
+// mineclash #23/#49: Einsatz-Matches 90 Tage statt 7, Historie mit Betraegen.
+export function isStakeMatch(record: GameRecord): boolean {
+  return record.info.config.mineclashStake !== undefined;
 }
 
 // Einsatz-Matches tragen ".stake" im Dateinamen, damit der Aufraeumjob nicht

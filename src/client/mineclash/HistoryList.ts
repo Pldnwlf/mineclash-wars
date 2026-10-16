@@ -11,6 +11,8 @@ import { fetchHistory, type HistoryEntry } from "./HistoryApi";
 import { reportAfterMatch, type PostMatchReportResult } from "./ReportApi";
 
 const REASONS = ReportReasonSchema.options;
+const BTN =
+  "rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm font-semibold text-white/85 hover:border-mc/60 hover:text-white";
 
 @customElement("history-list")
 export class HistoryList extends LitElement {
@@ -120,26 +122,38 @@ export class HistoryList extends LitElement {
                 )}</strong
               >
               ${m.stakeCoins !== undefined
-                ? html`<span class="stake">${m.stakeCoins}</span>`
+                ? html`<span
+                    class="stake rounded-full border border-amber-400/50 bg-amber-950/70 px-2 py-0.5 text-xs font-bold text-amber-200"
+                    >🪙 ${m.stakeCoins}</span
+                  >`
                 : ""}
               ${m.netCoins !== undefined
-                ? html`<span class="net"
-                    >${m.netCoins > 0 ? "+" : ""}${m.netCoins}</span
+                ? html`<span
+                    class="net font-bold ${m.netCoins > 0
+                      ? "text-green-400"
+                      : m.netCoins < 0
+                        ? "text-red-400"
+                        : "text-white/70"}"
+                    >${m.netCoins > 0 ? "+" : ""}${m.netCoins} Coins</span
                   >`
                 : ""}
               ${m.payoutStatus
-                ? html`<span class="payout">${m.payoutStatus}</span>`
+                ? html`<span class="payout text-white/60"
+                    >${translateText(
+                      `mineclash.result_${m.payoutStatus}`,
+                    )}</span
+                  >`
                 : ""}
             </div>
             <div class="mt-2 flex gap-4">
               <a
-                class="replay text-blue-400 underline hover:text-blue-300"
+                class="replay ${BTN}"
                 href=${currentPagePath(ClientEnv.gamePath(m.id))}
                 >${translateText("mineclash.history_replay")}</a
               >
               ${m.players.length > 0
                 ? html`<button
-                    class="report-toggle text-blue-400 underline hover:text-blue-300"
+                    class="report-toggle ${BTN}"
                     @click=${() => this.toggleReport(m)}
                   >
                     ${translateText("mineclash.history_report")}

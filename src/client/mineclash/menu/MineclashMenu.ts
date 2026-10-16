@@ -71,6 +71,24 @@ function icon(name: keyof typeof ICONS, cls: string) {
   </svg>`;
 }
 
+const TUTORIAL_OFFERED_KEY = "mc-tutorial-offered";
+
+// Storage can throw (private mode, blocked site data): then offer nothing.
+function storedFlag(key: string): boolean {
+  try {
+    return localStorage.getItem(key) !== null;
+  } catch {
+    return true;
+  }
+}
+function setStoredFlag(key: string) {
+  try {
+    localStorage.setItem(key, "1");
+  } catch {
+    // ignore
+  }
+}
+
 @customElement("mineclash-menu")
 export class MineclashMenu extends LitElement {
   @property({ attribute: false }) lobbies: PublicGames | null = null;
@@ -90,6 +108,8 @@ export class MineclashMenu extends LitElement {
 
   @state() private joined: string | null = null;
   @state() private status: StakeStatus | null = null;
+  /** #50: first visit offers the tutorial once. */
+  @state() private offerTutorial = !storedFlag(TUTORIAL_OFFERED_KEY);
 
   createRenderRoot() {
     return this;
@@ -302,6 +322,50 @@ export class MineclashMenu extends LitElement {
     </button>`;
   }
 
+  private closeTutorialOffer(start: boolean) {
+    setStoredFlag(TUTORIAL_OFFERED_KEY);
+    this.offerTutorial = false;
+    if (start) this.onTutorial();
+  }
+
+  private tutorialOffer() {
+    return html`<div
+      class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        class="relative flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-white/10 bg-[#14141f] p-8 text-center text-white shadow-2xl"
+      >
+        <span
+          class="flex size-20 items-center justify-center rounded-2xl border border-mc/40 bg-mc/15"
+          >${icon("cap", "size-10 text-mc")}</span
+        >
+        <h2 class="text-2xl font-bold">
+          ${translateText("mineclash.tutorial_offer_title")}
+        </h2>
+        <p class="text-white/75">
+          ${translateText("mineclash.tutorial_offer_text")}
+        </p>
+        <button
+          class="w-full rounded-xl bg-mc py-3 text-lg font-bold text-white hover:brightness-110"
+          @click=${() => this.closeTutorialOffer(true)}
+        >
+          ${translateText("mineclash.tutorial_offer_start")}
+        </button>
+        <button
+          class="font-semibold text-white/75 hover:text-white"
+          @click=${() => this.closeTutorialOffer(false)}
+        >
+          ${translateText("mineclash.tutorial_offer_later")}
+        </button>
+        <p class="text-xs text-white/50">
+          ${translateText("mineclash.tutorial_offer_hint")}
+        </p>
+      </div>
+    </div>`;
+  }
+
   private tile(
     label: string,
     iconName: keyof typeof ICONS,
@@ -380,6 +444,7 @@ export class MineclashMenu extends LitElement {
         )}
       </div>
 
+      ${this.offerTutorial ? this.tutorialOffer() : nothing}
       <div class="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
         <button
           class=${WIDE}

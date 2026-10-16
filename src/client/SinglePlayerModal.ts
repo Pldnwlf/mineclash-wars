@@ -29,6 +29,8 @@ import { crazyGamesSDK } from "./CrazyGamesSDK";
 import { GameStartingModal } from "./GameStartingModal";
 import { showInGameAlert } from "./InGameModal";
 import { JoinLobbyEvent } from "./Main";
+import { Features } from "./mineclash/Features";
+import { renderSoloLayout, SoloSummary, SoloTab } from "./mineclash/SoloLayout";
 import { fallbackPlayerName, ResolvedPlayerName } from "./PlayerName";
 import { lastUserMeResponse } from "./UserMeBroadcast";
 import { UsernameInput } from "./UsernameInput";
@@ -187,6 +189,7 @@ export class SinglePlayerModal extends BaseModal {
   @state() private gameMode: GameMode = DEFAULT_OPTIONS.gameMode;
   @state() private teamCount: TeamCountConfig = DEFAULT_OPTIONS.teamCount;
   @state() private showAchievements: boolean = false;
+  @state() private mcTab: SoloTab = "map"; // mineclash #45
   @state() private mapWins: Map<GameMapType, Set<Difficulty>> = new Map();
   // Maps that support achievements (have nations). null until loaded — the
   // medal overview shows a placeholder total meanwhile.
@@ -330,31 +333,62 @@ export class SinglePlayerModal extends BaseModal {
     this.mapWins = winsMap;
   }
 
+  // mineclash #45: values for the summary column.
+  private soloSummary(): SoloSummary {
+    const modifiers = (
+      [
+        [this.instantBuild, "game_settings.instant_build"],
+        [this.randomSpawn, "game_settings.random_spawn"],
+        [this.infiniteGold, "game_settings.infinite_gold"],
+        [this.infiniteTroops, "game_settings.infinite_troops"],
+        [this.compactMap, "game_settings.compact_map"],
+        [this.waterNukes, "game_settings.water_nukes"],
+        [this.doomsdayClock, "game_settings.doomsday_clock"],
+      ] as const
+    )
+      .filter(([on]) => on)
+      .map(([, key]) => key);
+    return {
+      map: this.selectedMap,
+      random: this.useRandomMap,
+      gameMode: this.gameMode,
+      difficulty: this.selectedDifficulty,
+      bots: this.bots,
+      nations: this.nations,
+      modifiers,
+    };
+  }
+
   protected renderHeaderSlot() {
     return modalHeader({
       title: translateText("main.solo") || "Solo",
       onBack: () => this.close(),
       ariaLabel: translateText("common.back"),
-      rightContent: responseHasLinkedIdentity(this.userMeResponse)
-        ? html`<button
-              @click=${this.toggleAchievements}
-              class="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all shrink-0 ${this
-                .showAchievements
-                ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
-                : "text-white/60"}"
-            >
-              <img
-                src=${assetUrl("images/MedalIconWhite.svg")}
-                class="w-4 h-4 opacity-80 shrink-0"
-                style="${this.showAchievements ? "" : "filter: grayscale(1);"}"
-              />
-              <span
-                class="text-xs font-bold uppercase tracking-wider whitespace-nowrap"
-                >${translateText("single_modal.toggle_achievements")}</span
+      // mineclash #45: no achievements (no OpenFront account).
+      rightContent: !Features.openfrontAuth
+        ? undefined
+        : responseHasLinkedIdentity(this.userMeResponse)
+          ? html`<button
+                @click=${this.toggleAchievements}
+                class="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all shrink-0 ${this
+                  .showAchievements
+                  ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
+                  : "text-white/60"}"
               >
-            </button>
-            ${this.showAchievements ? this.renderMedalOverview() : null}`
-        : this.renderNotLoggedInBanner(),
+                <img
+                  src=${assetUrl("images/MedalIconWhite.svg")}
+                  class="w-4 h-4 opacity-80 shrink-0"
+                  style="${this.showAchievements
+                    ? ""
+                    : "filter: grayscale(1);"}"
+                />
+                <span
+                  class="text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+                  >${translateText("single_modal.toggle_achievements")}</span
+                >
+              </button>
+              ${this.showAchievements ? this.renderMedalOverview() : null}`
+          : this.renderNotLoggedInBanner(),
     });
   }
 
@@ -487,94 +521,106 @@ export class SinglePlayerModal extends BaseModal {
       ></toggle-input-card>`,
     ];
 
+    const config = html`<game-config-settings
+      class="block"
+      .sectionGapClass=${"space-y-6"}
+      .settings=${{
+        map: {
+          selected: this.selectedMap,
+          useRandom: this.useRandomMap,
+          showMedals: this.showAchievements,
+          mapWins: this.mapWins,
+        },
+        difficulty: {
+          selected: this.selectedDifficulty,
+          disabled: this.nations === 0,
+        },
+        gameMode: {
+          selected: this.gameMode,
+        },
+        teamCount: {
+          selected: this.teamCount,
+        },
+        options: {
+          titleKey: "game_settings.options",
+          bots: {
+            value: this.bots,
+            labelKey: "game_settings.bots",
+            disabledKey: "common.disabled",
+          },
+          nations: {
+            value: this.nations,
+            defaultValue: this.defaultNationCount,
+            labelKey: "game_settings.nations",
+            disabledKey: "common.disabled",
+          },
+          toggles: [
+            {
+              labelKey: "game_settings.instant_build",
+              checked: this.instantBuild,
+            },
+            {
+              labelKey: "game_settings.random_spawn",
+              checked: this.randomSpawn,
+            },
+            {
+              labelKey: "game_settings.infinite_gold",
+              checked: this.infiniteGold,
+            },
+            {
+              labelKey: "game_settings.infinite_troops",
+              checked: this.infiniteTroops,
+            },
+            {
+              labelKey: "game_settings.compact_map",
+              checked: this.compactMap,
+            },
+            {
+              labelKey: "game_settings.water_nukes",
+              checked: this.waterNukes,
+            },
+            {
+              labelKey: "game_settings.doomsday_clock",
+              checked: this.doomsdayClock,
+              doomsdayClockSpeed: this.doomsdayClockSpeed,
+            },
+          ],
+          inputCards,
+        },
+        unitTypes: {
+          titleKey: "game_settings.disable_units",
+          disabledUnits: this.disabledUnits,
+        },
+      }}
+      @map-selected=${this.handleConfigMapSelected}
+      @random-map-selected=${this.handleConfigRandomMapSelected}
+      @difficulty-selected=${this.handleConfigDifficultySelected}
+      @doomsday-clock-speed-selected=${this
+        .handleConfigDoomsdayClockSpeedSelected}
+      @game-mode-selected=${this.handleConfigGameModeSelected}
+      @team-count-selected=${this.handleConfigTeamCountSelected}
+      @bots-changed=${this.handleBotsChange}
+      @nations-changed=${this.handleNationsChange}
+      @option-toggle-changed=${this.handleConfigOptionToggleChanged}
+      @unit-toggle-changed=${this.handleConfigUnitToggleChanged}
+    ></game-config-settings>`;
+    if (!Features.upstreamMenu) {
+      // mineclash #45: FrontWars layout, tabs left, summary + start right.
+      return renderSoloLayout({
+        tab: this.mcTab,
+        onTab: (t) => (this.mcTab = t),
+        config,
+        summary: this.soloSummary(),
+        starting: this.starting,
+        onStart: () => this.startGame(),
+      });
+    }
     return html`
       <div class="flex flex-col h-full">
         <div
           class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6 mr-1 mx-auto w-full max-w-5xl"
         >
-          <game-config-settings
-            class="block"
-            .sectionGapClass=${"space-y-6"}
-            .settings=${{
-              map: {
-                selected: this.selectedMap,
-                useRandom: this.useRandomMap,
-                showMedals: this.showAchievements,
-                mapWins: this.mapWins,
-              },
-              difficulty: {
-                selected: this.selectedDifficulty,
-                disabled: this.nations === 0,
-              },
-              gameMode: {
-                selected: this.gameMode,
-              },
-              teamCount: {
-                selected: this.teamCount,
-              },
-              options: {
-                titleKey: "game_settings.options",
-                bots: {
-                  value: this.bots,
-                  labelKey: "game_settings.bots",
-                  disabledKey: "common.disabled",
-                },
-                nations: {
-                  value: this.nations,
-                  defaultValue: this.defaultNationCount,
-                  labelKey: "game_settings.nations",
-                  disabledKey: "common.disabled",
-                },
-                toggles: [
-                  {
-                    labelKey: "game_settings.instant_build",
-                    checked: this.instantBuild,
-                  },
-                  {
-                    labelKey: "game_settings.random_spawn",
-                    checked: this.randomSpawn,
-                  },
-                  {
-                    labelKey: "game_settings.infinite_gold",
-                    checked: this.infiniteGold,
-                  },
-                  {
-                    labelKey: "game_settings.infinite_troops",
-                    checked: this.infiniteTroops,
-                  },
-                  {
-                    labelKey: "game_settings.compact_map",
-                    checked: this.compactMap,
-                  },
-                  {
-                    labelKey: "game_settings.water_nukes",
-                    checked: this.waterNukes,
-                  },
-                  {
-                    labelKey: "game_settings.doomsday_clock",
-                    checked: this.doomsdayClock,
-                    doomsdayClockSpeed: this.doomsdayClockSpeed,
-                  },
-                ],
-                inputCards,
-              },
-              unitTypes: {
-                titleKey: "game_settings.disable_units",
-                disabledUnits: this.disabledUnits,
-              },
-            }}
-            @map-selected=${this.handleConfigMapSelected}
-            @random-map-selected=${this.handleConfigRandomMapSelected}
-            @difficulty-selected=${this.handleConfigDifficultySelected}
-            @doomsday-clock-speed-selected=${this
-              .handleConfigDoomsdayClockSpeedSelected}
-            @game-mode-selected=${this.handleConfigGameModeSelected}
-            @team-count-selected=${this.handleConfigTeamCountSelected}
-            @bots-changed=${this.handleBotsChange}
-            @nations-changed=${this.handleNationsChange}
-            @option-toggle-changed=${this.handleConfigOptionToggleChanged}
-            @unit-toggle-changed=${this.handleConfigUnitToggleChanged}
-          ></game-config-settings>
+          ${config}
         </div>
 
         <!-- Footer Action -->

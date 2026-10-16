@@ -1,0 +1,23 @@
+/* mineclash #49: in-game accents in MineClash orange instead of upstream blue.
+   Own file (doubled classes win over the components' inline styles), so
+   upstream files stay untouched. */
+.win-action.win-action-main {
+  background: linear-gradient(to top, #f29520 0%, #e07a10 100%);
+  border-color: rgba(255, 190, 110, 0.6);
+}
+.win-action.win-action-main:hover,
+.win-action.win-action-main:focus-visible {
+  background: linear-gradient(to top, #ffa83a 0%, #f08a20 100%);
+  border-color: rgba(255, 210, 150, 0.9);
+  box-shadow: 0 0 20px rgba(242, 149, 32, 0.55);
+}
+.win-action.win-action:focus-visible {
+  outline-color: #f29520;
+}
+
+/* mineclash #45: solo modal tabs hide sections of <game-config-settings>
+   (first section = map, the rest = rules & options). */
+.mc-solo-map game-config-settings > div > :not(:first-child),
+.mc-solo-rules game-config-settings > div > :first-child {
+  display: none;
+}
