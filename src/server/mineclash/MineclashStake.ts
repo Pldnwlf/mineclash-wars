@@ -224,13 +224,13 @@ export async function statusResponse(
     login && login.claims !== null && !isGuestClaims(login.claims)
       ? toUuid(login.persistentId)
       : null;
+  const bal = user !== null && ready ? await wallet!.balanceOf(user) : null;
   return {
     walletReady: ready,
     wdPerCoin: ready ? await wallet!.wdPerCoin() : null,
     rulesAccepted: user === null ? null : rulesAccepted(user),
-    balance:
-      user !== null && ready
-        ? ((await wallet!.balanceOf(user))?.balance ?? null)
-        : null,
+    balance: bal?.balance ?? null,
+    /** balance minus coins held in stake lobbies (#54). */
+    available: bal?.available ?? null,
   };
 }

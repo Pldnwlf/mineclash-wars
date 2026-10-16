@@ -11,6 +11,8 @@ export type StakeStatus = {
   /** null = not logged in / guest. */
   rulesAccepted: boolean | null;
   balance: number | null;
+  /** balance minus coins held in stake lobbies. */
+  available?: number | null;
 };
 
 /** kick_reason.<code>: texts are owned by the server side (en/de). */
@@ -89,7 +91,7 @@ export function stakeGate(s: StakeStatus | null, coins: number): GateResult {
     return { ok: false, reason: "login" };
   }
   if (!s.rulesAccepted) return { ok: false, reason: "rules" };
-  if (s.balance < coins) return { ok: false, reason: "funds" };
+  if ((s.available ?? s.balance) < coins) return { ok: false, reason: "funds" };
   return { ok: true };
 }
 

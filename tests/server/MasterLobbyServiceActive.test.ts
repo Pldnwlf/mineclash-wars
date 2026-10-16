@@ -145,6 +145,41 @@ describe("MasterLobbyService inactive deployment still starts queued lobbies", (
   });
 });
 
+describe("mineclash #23/#57: stake countdown only from 2 humans", () => {
+  it.each([
+    [0, 0],
+    [1, 0],
+    [2, 1],
+  ])("ffa lobby with %i clients gets %i countdowns", async (n, expected) => {
+    vi.mocked(startPolling).mockClear(); // schedulerTask() takes the first loop
+    vi.stubEnv("DOMAIN", "localhost");
+    vi.spyOn(ServerEnv, "numWorkers").mockReturnValue(1);
+    const playlist = { gameConfig: vi.fn(async () => ({})) };
+    const log = { info: vi.fn(), error: vi.fn() } as any;
+    const service = new MasterLobbyService(playlist as any, log);
+    const worker = createMockWorker();
+    service.registerWorker(0, worker as any);
+    worker.emit("message", { type: "workerReady", workerId: 0 });
+    worker.emit("message", {
+      type: "lobbyList",
+      lobbies: [
+        {
+          gameID: "STAKE01",
+          publicGameType: "ffa",
+          numClients: n,
+          createdAt: 1,
+        },
+      ],
+    });
+    service.setActive(false); // only arm the queued lobby, create nothing
+    await schedulerTask()();
+    const updates = worker.send.mock.calls.filter(
+      ([msg]) => msg.type === "updateLobby" && msg.gameID === "STAKE01",
+    );
+    expect(updates).toHaveLength(expected);
+  });
+});
+
 describe("MasterLobbyService awaiting the API's first answer", () => {
   let worker: ReturnType<typeof createMockWorker>;
   let service: MasterLobbyService;

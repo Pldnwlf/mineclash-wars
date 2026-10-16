@@ -1,6 +1,8 @@
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { LitElement, html } from "lit";
 import { customElement } from "lit/decorators.js";
+import "../mineclash/AccountChip";
+import { Features } from "../mineclash/Features";
 import "./CosmeticBackground";
 import "./NavAccountMenu";
 import "./NavUtilityIcons";
@@ -69,7 +71,11 @@ export class PlayPage extends LitElement {
               class="col-start-3 justify-self-end shrink-0 flex items-center gap-0.5"
             >
               <nav-utility-icons size="mobile"></nav-utility-icons>
-              <nav-account-menu variant="mobile"></nav-account-menu>
+              ${Features.openfrontAuth
+                ? html`<nav-account-menu variant="mobile"></nav-account-menu>`
+                : html`<mineclash-account-chip
+                    compact
+                  ></mineclash-account-chip>`}
             </div>
           </div>
         </div>
