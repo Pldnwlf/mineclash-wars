@@ -313,11 +313,13 @@ export class HeadsUpMessage extends LitElement implements Controller {
                             bg-amber-500/70 rounded-md lg:rounded-lg
                             backdrop-blur-xs text-white text-md lg:text-xl px-3 lg:px-4 py-3
                             text-center break-words"
-                style="word-wrap: break-word; hyphens: auto; pointer-events: auto;"
+                style="word-wrap: break-word; hyphens: auto; pointer-events: none;"
                 @contextmenu=${(e: MouseEvent) => e.preventDefault()}
               >
+                <!-- mineclash #55: spawn clicks pass through, only the button catches -->
                 <div>${translateText("heads_up_message.ffa_collusion")}</div>
                 <button
+                  style="pointer-events: auto;"
                   class="mt-2 px-3 py-1 rounded bg-black/20 hover:bg-black/30 text-sm"
                   @click=${this.onCloseCollusionWarning}
                 >

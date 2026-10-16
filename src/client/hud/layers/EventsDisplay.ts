@@ -3,7 +3,6 @@ import {
   MessageCategory,
   MessageType,
 } from "@openfront/engine-api/game/GameTypes";
-import { assetUrl } from "@openfront/shared/AssetUrls";
 import {
   AllianceExpiredUpdate,
   AllianceRequestReplyUpdate,
@@ -16,6 +15,7 @@ import {
   TargetPlayerUpdate,
   UnitIncomingUpdate,
 } from "@openfront/engine-api/game/GameUpdates";
+import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement } from "lit";
 import { customElement, query, state } from "lit/decorators.js";
@@ -778,6 +778,17 @@ export class EventsDisplay extends LitElement implements Controller {
               </div>
             `
           : ""}
+        ${
+          tier2Events.length === 0 &&
+          tier1Events.length === 0 &&
+          !showBetrayalTimer
+            ? html`<div
+                class="bg-gray-800/92 backdrop-blur-sm rounded-lg opacity-90 py-3 text-center text-sm text-white/70"
+              >
+                ${translateText("mineclash.events_none")}
+              </div>`
+            : "" /* mineclash #48: empty state, the log is always visible */
+        }
         ${tier1Events.length > 0 || showBetrayalTimer
           ? html`
               <div

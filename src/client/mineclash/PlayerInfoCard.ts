@@ -1,4 +1,5 @@
-// mineclash #12: player info card in the FrontWars layout (labelled rows).
+// mineclash #12/#46: player info card in the FrontWars layout (compact head,
+// gold box, buildings as an icon grid).
 // Layout after FrontWars' graphics/layers/PlayerInfoOverlay.ts (GPL v3, see
 // CREDITS.md). Used by hud/layers/PlayerInfoOverlay.ts, which keeps the
 // hover logic and the action buttons.
@@ -11,6 +12,14 @@ import {
 import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, TemplateResult } from "lit";
+import {
+  cityIcon,
+  factoryIcon,
+  missileSiloIcon,
+  portIcon,
+  samLauncherIcon,
+  warshipIcon,
+} from "../hud/HotbarIcons";
 import {
   EMOJI_ICON_KIND,
   getFirstPlacePlayer,
@@ -28,10 +37,11 @@ function relationText(
   myPlayer: PlayerView | null | undefined,
   profile: PlayerProfile | null,
 ): string {
+  if (myPlayer === player) return translateText("mineclash.info_you"); // #46
   if (myPlayer?.isAlliedWith(player)) {
     return translateText("player_info_overlay.allied");
   }
-  if (!myPlayer || myPlayer === player || player.type() !== PlayerType.Nation) {
+  if (!myPlayer || player.type() !== PlayerType.Nation) {
     return translateText("relation.neutral");
   }
   switch (profile?.relations[myPlayer.smallID()] ?? Relation.Neutral) {
@@ -63,13 +73,19 @@ export function renderPlayerInfoCard(
   footer: TemplateResult | string,
 ) {
   const myPlayer = game.myPlayer();
-  const unitRow = (type: UnitType, key: string) =>
+  const unitCell = (type: UnitType, key: string, icon: string) =>
     game.config().isUnitDisabled(type)
       ? ""
-      : row(
-          translateText(`player_info_overlay.${key}`),
-          player.totalUnitLevels(type),
-        );
+      : html`<div
+          class="flex items-center gap-2 rounded-md bg-white/5 px-2 py-1"
+          title=${translateText(`player_info_overlay.${key}`)}
+          translate="no"
+        >
+          <img src=${icon} alt="" class="size-4 opacity-90" />
+          <span class="font-bold tabular-nums"
+            >${player.totalUnitLevels(type)}</span
+          >
+        </div>`;
   const attackingTroops = player
     .outgoingAttacks()
     .reduce((sum, a) => sum + a.troops, 0);
@@ -142,23 +158,21 @@ export function renderPlayerInfoCard(
               : ""}
           </div>`
         : ""}
-      ${row(
-        translateText("player_info_overlay.type"),
-        translateText(`player_type.${typeKey}`),
-      )}
-      ${row(
-        translateText("player_info_overlay.relation"),
-        relationText(player, myPlayer, profile),
-      )}
+      <div class="flex justify-between gap-2 text-white/70">
+        <span>${translateText(`player_type.${typeKey}`)}</span>
+        <span>${relationText(player, myPlayer, profile)}</span>
+      </div>
       ${row(
         translateText("player_info_overlay.troops"),
         renderTroops(player.troops()),
       )}
-      ${row(
-        translateText("player_info_overlay.attacking"),
-        renderTroops(attackingTroops),
-        attackingTroops > 0 ? "text-aquarius" : "text-white/60",
-      )}
+      ${attackingTroops > 0
+        ? row(
+            translateText("player_info_overlay.attacking"),
+            renderTroops(attackingTroops),
+            "text-aquarius",
+          )
+        : ""}
       <div
         class="flex justify-between items-center rounded-md bg-yellow-400/15 px-2 py-1 text-yellow-400"
         translate="no"
@@ -170,12 +184,15 @@ export function renderPlayerInfoCard(
           >${renderNumber(player.gold())}</span
         >
       </div>
-      ${unitRow(UnitType.City, "cities")}
-      ${unitRow(UnitType.Factory, "factories")}
-      ${unitRow(UnitType.Port, "ports")}
-      ${unitRow(UnitType.MissileSilo, "silos")}
-      ${unitRow(UnitType.SAMLauncher, "sams")}
-      ${unitRow(UnitType.Warship, "warships")} ${footer}
+      <div class="grid grid-cols-2 gap-1.5 pt-1">
+        ${unitCell(UnitType.City, "cities", cityIcon)}
+        ${unitCell(UnitType.Factory, "factories", factoryIcon)}
+        ${unitCell(UnitType.Port, "ports", portIcon)}
+        ${unitCell(UnitType.MissileSilo, "silos", missileSiloIcon)}
+        ${unitCell(UnitType.SAMLauncher, "sams", samLauncherIcon)}
+        ${unitCell(UnitType.Warship, "warships", warshipIcon)}
+      </div>
+      ${footer}
     </div>
   `;
 }
