@@ -7,7 +7,7 @@ import {
 import { CloseCode, CloseReason } from "@openfront/shared/CloseCodes";
 import { GameEnv } from "@openfront/shared/configuration/Env";
 import { PersistentIdSchema } from "@openfront/shared/WireSchemas";
-import { jwtVerify } from "jose";
+import { errors, jwtVerify } from "jose";
 import { z } from "zod";
 import { ServerEnv } from "./ServerEnv";
 
@@ -36,12 +36,24 @@ export async function verifyClientToken(
   try {
     const issuer = ServerEnv.jwtIssuer();
     const audience = ServerEnv.jwtAudience();
-    const key = await ServerEnv.jwkPublicKey();
-    const { payload } = await jwtVerify(token, key, {
-      algorithms: ["EdDSA"],
-      issuer,
-      audience,
-    });
+    const verify = async () =>
+      jwtVerify(token, await ServerEnv.jwkPublicKey(), {
+        algorithms: ["EdDSA"],
+        issuer,
+        audience,
+      });
+    let payload;
+    try {
+      ({ payload } = await verify());
+    } catch (e) {
+      // mineclash #56: key rotated -> refetch the JWKS once and retry.
+      if (
+        !(e instanceof errors.JWSSignatureVerificationFailed) ||
+        !ServerEnv.forgetPublicKey()
+      )
+        throw e;
+      ({ payload } = await verify());
+    }
     const result = TokenPayloadSchema.safeParse(payload);
     if (!result.success) {
       return {

@@ -15,6 +15,7 @@ import { z } from "zod";
 import { getApiBase } from "./ApiBase";
 import { ClientEnv } from "./ClientEnv";
 import { isDesktopShell } from "./DesktopShell";
+import { Features } from "./mineclash/Features";
 import { pagePin } from "./PagePin";
 import { isReplayShellHost } from "./VersionedReplay";
 
@@ -1016,6 +1017,7 @@ function isOnReplayShell(): boolean {
 // piecemeal). A missing value here must degrade to the fallback path, never
 // take a join down.
 function safeSite(): string | undefined {
+  if (!Features.serverList) return undefined; // mineclash #52: one server, no list
   try {
     return serverListSite();
   } catch {

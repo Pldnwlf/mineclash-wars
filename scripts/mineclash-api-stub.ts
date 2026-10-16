@@ -320,6 +320,8 @@ export async function createStub(opts: StubOptions) {
       const id = randomUUID();
       return [200, { token: await sign(id, `Gast-${id.slice(0, 4)}`, true) }];
     }
+    // Kein Server-Cluster: 404 = Seite nutzt ihre eigenen Werte (#52).
+    if (p === "/cluster.json") throw new ApiError(404, "not_found");
     // Ab hier Server-zu-Server.
     if (req.headers["x-api-key"] !== apiKey)
       throw new ApiError(401, "bad_api_key");

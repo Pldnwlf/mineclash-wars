@@ -73,6 +73,27 @@ describe("verifyClientToken (Prod-Pfad gegen mineclash)", () => {
     );
     expect(r.type === "success" && r.claims?.guest).toBe(true);
   });
+  test("Schlüsselwechsel der API: JWKS wird neu geladen (#56)", async () => {
+    expect((await verifyClientToken(await sign({ name: "A" }))).type).toBe(
+      "success",
+    );
+    const kp = await generateKeyPair("EdDSA", { crv: "Ed25519" });
+    priv = kp.privateKey as CryptoKey;
+    const jwk = { ...(await exportJWK(kp.publicKey)), alg: "EdDSA" };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ keys: [jwk] })),
+    );
+    // Within a minute of the last fetch the cache is kept (no JWKS hammering).
+    expect((await verifyClientToken(await sign({ name: "A" }))).type).toBe(
+      "error",
+    );
+    const now = Date.now();
+    const spy = vi.spyOn(Date, "now").mockReturnValue(now + 61_000);
+    const r = await verifyClientToken(await sign({ name: "A" }));
+    spy.mockRestore();
+    expect(r.type).toBe("success");
+  });
   test("bare persistentID ist mit MINECLASH_API_URL nicht erlaubt", async () => {
     expect((await verifyClientToken(randomUUID())).type).toBe("error");
   });

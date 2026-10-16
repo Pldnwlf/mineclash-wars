@@ -24,6 +24,7 @@ const JwksSchema = z.object({
 export class ServerEnv {
   private static readonly gameEnv: GameEnv = parseGameEnv(process.env.GAME_ENV);
   private static publicKey: JWK | null = null;
+  private static publicKeyAt = 0;
 
   // Values that also flow to the client via index.html, but on the server
   // are read from process.env directly. Server code never reaches into
@@ -146,7 +147,18 @@ export class ServerEnv {
       throw new Error("Invalid JWKS");
     }
     ServerEnv.publicKey = result.data.keys[0];
+    ServerEnv.publicKeyAt = Date.now();
     return ServerEnv.publicKey;
+  }
+  /**
+   * mineclash #56: the API rotated its key (signature mismatch). Drops the
+   * cached key so the next jwkPublicKey() refetches; at most once a minute,
+   * so forged tokens cannot hammer the JWKS endpoint. true = dropped.
+   */
+  static forgetPublicKey(): boolean {
+    if (Date.now() - ServerEnv.publicKeyAt < 60_000) return false;
+    ServerEnv.publicKey = null;
+    return true;
   }
   static turnIntervalMs(): number {
     return 100;

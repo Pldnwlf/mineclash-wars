@@ -16,6 +16,8 @@
 //   steht im Match immer; nicht änderbar), guest? = true bei Gast-JWT.
 // Gast-JWT: POST /auth/guest => { token }; sub = zufällige UUID, guest=true.
 //   Gäste dürfen nur Gratis-Lobbys (kein hold).
+// GET /cluster.json?site=… (öffentlich, vom Browser gepollt) => 404: es gibt
+//   keine Serverliste, der Client nutzt die Werte der Seite (#52).
 // Server-zu-Server (alles unter /wallet/*, GET /users/@me): Header
 //   `x-api-key: <ServerEnv.apiKey()>`. Kein Client-Zugriff.
 //   /users/@me zusätzlich `authorization: Bearer <JWT>`; Antwort muss

@@ -28,6 +28,10 @@ export const Features = {
   cosmetics: test,
   /** XP / levels / prestige (/progression/* + win-modal XP panel). */
   progression: test,
+  /** Solo games archived to the OpenFront API (/archive_singleplayer_game). #51 */
+  soloArchive: test,
+  /** Server list from the API (/cluster.json); false = page values only. #52 */
+  serverList: test,
   /** News fetched from the API; false = bundled fallback only. */
   remoteNews: test,
   /** Win-modal promo box (Steam wishlist, Discord, pattern shop, YouTube). */

@@ -29,6 +29,7 @@ import {
   GameSpeedUpIntentEvent,
   ReplaySpeedChangeEvent,
 } from "./InputHandler";
+import { Features } from "./mineclash/Features";
 import { startSingleplayerHeartbeat } from "./SingleplayerHeartbeat";
 import {
   defaultReplaySpeedMultiplier,
@@ -331,6 +332,7 @@ export class LocalServer {
       return;
     }
 
+    if (!Features.soloArchive) return; // mineclash #51: API has no archive
     this.archiveGame(result.data, unloading);
   }
 

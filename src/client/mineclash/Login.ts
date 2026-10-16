@@ -78,7 +78,11 @@ export async function acquireSession(
   isDev: boolean,
 ): Promise<Session | null> {
   if (isDev) {
-    const name = new URLSearchParams(location.search).get("devLogin");
+    // Kept for the tab: "Exit Game" navigates to / without the param (#58).
+    const name =
+      new URLSearchParams(location.search).get("devLogin") ??
+      sessionStorage.getItem("devLogin");
+    if (name) sessionStorage.setItem("devLogin", name);
     if (name) {
       try {
         const res = await fetch(
