@@ -1099,9 +1099,11 @@ export class GameServer {
   }
 
   // < 2 humans at the start deadline. Rotation: keep waiting, the master
-  // re-arms the countdown at 2 humans. Hosted: close the lobby.
+  // re-arms the countdown at 2 humans; empty: close, the next map comes.
+  // Hosted: close the lobby.
   private stakeShortHanded(): boolean {
-    if (!this.isPublic()) return this.cancelStakeLobby();
+    if (!this.isPublic() || this.playerCount() === 0)
+      return this.cancelStakeLobby();
     this.startsAt = undefined;
     return true;
   }

@@ -145,9 +145,9 @@ describe("MasterLobbyService inactive deployment still starts queued lobbies", (
   });
 });
 
-describe("mineclash #23/#57: stake countdown only from 2 humans", () => {
+describe("mineclash #23/#57: stake countdown from 2 humans or when empty", () => {
   it.each([
-    [0, 0],
+    [0, 1],
     [1, 0],
     [2, 1],
   ])("ffa lobby with %i clients gets %i countdowns", async (n, expected) => {

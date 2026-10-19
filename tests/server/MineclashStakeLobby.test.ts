@@ -240,6 +240,13 @@ describe("Start / Abbruch", () => {
     expect(lastError(c)).toBeUndefined();
   });
 
+  test("Rotation leer: Lobby schliesst, naechste Map kommt", () => {
+    const { game } = stakeGame();
+    game.setStartsAt(Date.now() - 1);
+    expect(game.cancelShortHandedMatch()).toBe(true);
+    expect(game.phase()).toBe("FINISHED");
+  });
+
   test("Custom < 2 Menschen: releaseAll, Lobby verfaellt", async () => {
     const { game, id } = stakeGame({ gameType: GameType.Private });
     const { c, uuid } = acct();
