@@ -2,7 +2,31 @@
    blurred world map, left icon rail, 880px column). Own file so upstream
    styles stay untouched. */
 @theme {
-  --color-mc: #f29520;
+  /* colours of mineclash.de (public-frontend main.css): gold accent,
+     orange second accent, dark text on accent, dark grey surfaces */
+  --color-mc: #f0c030;
+  --color-mc-2: #f09000;
+  --color-mc-on: #151719;
+  --color-mc-bg: #151719;
+  --color-mc-card: #1a1d20;
+
+  /* upstream blue -> mineclash orange */
+  --color-malibu-blue: #f09000;
+  --color-aquarius: #f0c030;
+  --color-bright-blue: #f09000;
+  --color-hex-cyan: #f0c030;
+  --color-deep-navy: #151719;
+  --color-surface: #151719;
+  --default-ring-color: #f0c030;
+  --shadow-malibu-blue: 0 0 15px rgba(240, 144, 0, 0.2);
+  --shadow-malibu-blue-soft: 0 0 12px rgba(240, 144, 0, 0.2);
+  --shadow-malibu-blue-strong: 0 0 15px rgba(240, 144, 0, 0.3);
+  --shadow-malibu-blue-pill: 0 0 6px rgba(240, 144, 0, 0.35);
+  --shadow-malibu-blue-ring-sm: 0 0 0 4px rgba(240, 144, 0, 0.2);
+  --shadow-malibu-blue-ring-lg: 0 0 0 6px rgba(240, 144, 0, 0.3);
+  --shadow-lobby-card-hover: 0 0 0 2px #f09000, 0 0 20px rgba(240, 144, 0, 0.5);
+  --shadow-action-card-hover:
+    0 0 0 1px #f09000, 0 0 12px rgba(240, 144, 0, 0.35);
 }
 
 body:not(.in-game) #background-layer {

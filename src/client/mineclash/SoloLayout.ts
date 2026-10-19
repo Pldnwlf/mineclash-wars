@@ -93,7 +93,7 @@ export function renderSoloLayout(o: {
   const tabBtn = (t: SoloTab, key: string) =>
     html`<button
       class="${TAB} ${o.tab === t
-        ? "bg-mc text-white"
+        ? "bg-mc text-mc-on"
         : "bg-white/5 text-white/70 hover:bg-white/10"}"
       @click=${() => o.onTab(t)}
     >
@@ -116,7 +116,7 @@ export function renderSoloLayout(o: {
     <div class="flex min-h-0 flex-col justify-between gap-4">
       <div class="hidden lg:block">${summary(o.summary)}</div>
       <button
-        class="flex w-full items-center justify-center gap-2 rounded-xl bg-mc py-4 text-lg font-bold text-white shadow-[0_8px_22px_rgba(242,149,32,0.4)] transition hover:brightness-110 disabled:opacity-60"
+        class="flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-b from-mc to-mc-2 py-4 text-lg font-bold text-mc-on shadow-[0_8px_22px_rgba(240,192,48,0.35)] transition hover:brightness-110 disabled:opacity-60"
         ?disabled=${o.starting}
         @click=${o.onStart}
       >

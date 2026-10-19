@@ -40,7 +40,7 @@ const TILE =
 const TILE_GLASS =
   "border border-white/10 bg-black/40 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] hover:border-mc/60 hover:bg-black/50";
 const TILE_ACCENT =
-  "border border-white/15 bg-linear-to-b from-mc to-[color-mix(in_srgb,var(--color-mc)_82%,black)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] hover:brightness-110";
+  "border border-white/15 bg-linear-to-b from-mc to-mc-2 text-mc-on! shadow-[inset_0_1px_0_rgba(255,255,255,0.3)] hover:brightness-110";
 const WIDE =
   "flex min-h-[60px] w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 px-6 py-3.5 text-[20px] font-bold text-white backdrop-blur-md transition-colors hover:bg-white/10 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none";
 const CHIP =
@@ -244,7 +244,7 @@ export class MineclashMenu extends LitElement {
       @click=${() => this.onCard(lobby)}
       ?disabled=${this.disabled}
       aria-pressed=${isJoined}
-      class="group relative block h-72 w-full min-w-0 overflow-hidden rounded-2xl bg-[#10101b] text-left text-white transition-all active:scale-[0.99] lg:h-80 ${glowClass(
+      class="group relative block h-72 w-full min-w-0 overflow-hidden rounded-2xl bg-mc-card text-left text-white transition-all active:scale-[0.99] lg:h-80 ${glowClass(
         isJoined,
       )} ${this.disabled ? "opacity-50 pointer-events-none" : ""}"
     >
@@ -335,7 +335,7 @@ export class MineclashMenu extends LitElement {
       aria-modal="true"
     >
       <div
-        class="relative flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-white/10 bg-[#14141f] p-8 text-center text-white shadow-2xl"
+        class="relative flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-white/10 bg-mc-card p-8 text-center text-white shadow-2xl"
       >
         <span
           class="flex size-20 items-center justify-center rounded-2xl border border-mc/40 bg-mc/15"
@@ -348,7 +348,7 @@ export class MineclashMenu extends LitElement {
           ${translateText("mineclash.tutorial_offer_text")}
         </p>
         <button
-          class="w-full rounded-xl bg-mc py-3 text-lg font-bold text-white hover:brightness-110"
+          class="w-full rounded-xl bg-linear-to-b from-mc to-mc-2 py-3 text-lg font-bold text-mc-on hover:brightness-110"
           @click=${() => this.closeTutorialOffer(true)}
         >
           ${translateText("mineclash.tutorial_offer_start")}
@@ -380,14 +380,14 @@ export class MineclashMenu extends LitElement {
     >
       <span
         class="flex size-[58px] items-center justify-center rounded-2xl ${accent
-          ? "bg-white/20 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]"
+          ? "bg-black/10 text-mc-on"
           : "border border-mc/30 bg-mc/15 text-mc group-hover:bg-mc/25"}"
         >${icon(iconName, "size-[26px]")}</span
       >
       <span class="min-w-0 text-center">${label}</span>
       ${badge > 0
         ? html`<span
-            class="absolute -right-2 -top-2 min-w-[28px] rounded-full bg-mc px-2 py-1 text-center text-[14px] font-bold leading-tight tabular-nums text-white shadow-lg ring-2 ring-black/30"
+            class="absolute -right-2 -top-2 min-w-[28px] rounded-full bg-mc px-2 py-1 text-center text-[14px] font-bold leading-tight tabular-nums text-mc-on shadow-lg ring-2 ring-black/30"
             >${badge}</span
           >`
         : nothing}
