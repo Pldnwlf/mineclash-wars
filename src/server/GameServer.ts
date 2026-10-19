@@ -799,6 +799,10 @@ export class GameServer {
     this.ingress.attach(client);
     this.startLobbyInfoBroadcast();
     if (this.stake && !client.spectator) void this.holdStake(client);
+    // mineclash #23: the first player stops the countdown of an empty lobby
+    // (map rotation) and waits; the master re-arms it at 2 humans.
+    if (this.stake && this.isPublic() && this.playerCount() === 1)
+      this.startsAt = undefined;
 
     this.markFullIfAutoStarting();
 

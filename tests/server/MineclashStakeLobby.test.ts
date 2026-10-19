@@ -247,6 +247,13 @@ describe("Start / Abbruch", () => {
     expect(game.phase()).toBe("FINISHED");
   });
 
+  test("Erster Spieler stoppt den Countdown der leeren Lobby", () => {
+    const { game } = stakeGame();
+    game.setStartsAt(Date.now() + 10_000);
+    game.joinClient(acct().c);
+    expect(game.gameInfo().startsAt).toBeUndefined();
+  });
+
   test("Custom < 2 Menschen: releaseAll, Lobby verfaellt", async () => {
     const { game, id } = stakeGame({ gameType: GameType.Private });
     const { c, uuid } = acct();
