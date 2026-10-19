@@ -1,6 +1,6 @@
 // mineclash #21/#22: Konto oben rechts statt OpenFront-Kontomenü. Eingeloggt:
 // MC-Name + verfügbare Coins (+ im Einsatz gehaltene, #54); Gast: Link zum
-// Login auf mineclash.de. `compact` (mobil): ohne Name.
+// Login auf mineclash.de (danach zurück auf /play). `compact` (mobil): ohne Name.
 import { html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { getUserMe } from "../Api";
@@ -52,7 +52,7 @@ export class AccountChip extends LitElement {
     if (this.name === null) {
       return html`<a
         class="${box} hover:border-white/30 hover:bg-black/40"
-        href=${mineclashLoginOrigin()}
+        href=${`${mineclashLoginOrigin()}/login?next=/play`}
         target="_top"
         >${translateText(
           this.compact
