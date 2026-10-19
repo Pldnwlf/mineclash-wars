@@ -236,6 +236,10 @@ export const MineclashRulesSchema = z.object({
 });
 export type MineclashRules = z.infer<typeof MineclashRulesSchema>;
 
+// Stake matches: 1 min to spawn. Who hasn't spawned by then is kicked and
+// keeps the stake; fewer than 2 spawned humans => refund for all.
+export const MINECLASH_STAKE_SPAWN_TURNS = 600;
+
 // Win bar for these rules: the rotation's sinking bar, or a fixed 80 %.
 export function mineclashBar(
   rules: MineclashRules,

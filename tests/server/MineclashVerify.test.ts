@@ -17,6 +17,7 @@ import {
 
 const A = cid("alice");
 const B = cid("bob");
+const C = cid("carol");
 const replayed = (
   winner: Winner,
   extra: Partial<ReplayedWinner> = {},
@@ -71,6 +72,23 @@ describe("mineclashResult (pure)", () => {
     expect(r([A], replayed(["player", A]))).toEqual({
       kind: "refund",
       reason: "too_few_humans",
+    });
+  });
+  it("non-spawners are listed; < 2 spawned => refund", () => {
+    const sp = (ids: string[]) => ({ spawnedClientIds: ids });
+    expect(r([A, B, C], replayed(["player", A], sp([A, B])))).toEqual({
+      kind: "winners",
+      clientIds: [A],
+      notSpawned: [C],
+    });
+    expect(r([A, B, C], replayed(["none"], sp([A])))).toEqual({
+      kind: "refund",
+      reason: "too_few_humans",
+    });
+    // a non-spawner can never be paid
+    expect(r([A, B, C], replayed(["player", C], sp([A, B])))).toEqual({
+      kind: "refund",
+      reason: "error",
     });
   });
   it("hash mismatch => refund", () => {

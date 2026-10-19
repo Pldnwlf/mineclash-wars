@@ -1,6 +1,7 @@
 // mineclash #23: Einsatz-Lobbys (Rotation, Beitritt, Hold/Release, Settle) gegen den API-Stub.
 // @vitest-environment node
 import { GameType } from "@openfront/engine-api/game/GameTypes";
+import { MINECLASH_STAKE_SPAWN_TURNS } from "@openfront/engine-api/Schemas";
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -292,6 +293,54 @@ describe("Start / Abbruch", () => {
     await wallet.settled(id);
     await until(() => bal(a.uuid).held === 0 && bal(a.uuid).balance === 1000);
     expect(bal(b.uuid).balance).toBe(1000);
+  });
+
+  test("Nicht gespawnt nach 1 Min: Kick, Einsatz zurueck", async () => {
+    const { game, id, results } = stakeGame();
+    const [a, b, c] = [acct(), acct(), acct()];
+    for (const x of [a, b, c]) game.joinClient(x.c);
+    await until(() => heldCount(id) === 3);
+    game.prestart();
+    game.start();
+    // 600 turns committed, a and b spawned in the first one; the next turn kicks.
+    (game as any).turns = Array.from(
+      { length: MINECLASH_STAKE_SPAWN_TURNS },
+      (_, t) => ({
+        turnNumber: t,
+        intents:
+          t === 0
+            ? [a, b].map((x) => ({
+                type: "spawn",
+                clientID: x.c.clientID,
+                tile: 0,
+              }))
+            : [],
+      }),
+    );
+    (game as any).endTurn();
+    expect((game as any).isKicked(c.c.clientID)).toBe(true);
+    expect((game as any).isKicked(a.c.clientID)).toBe(false);
+    expect((game as any).isKicked(b.c.clientID)).toBe(false);
+
+    (game as any).finishVerify(
+      {
+        winner: ["player", a.c.clientID],
+        allPlayersStats: {},
+        tick: 1,
+        spawnedClientIds: [a.c.clientID, b.c.clientID],
+      },
+      null,
+    );
+    expect(results).toEqual([
+      {
+        kind: "winners",
+        clientIds: [a.c.clientID],
+        notSpawned: [c.c.clientID],
+      },
+    ]);
+    await until(() => bal(a.uuid).balance === 1090); // Topf 200 (ohne c), Rake 10
+    expect(bal(b.uuid).balance).toBe(900);
+    expect(bal(c.uuid)).toMatchObject({ balance: 1000, held: 0 });
   });
 
   test("Ende-zu-Ende: 2 Konten, Gewinner +Topf-5%, Verlierer -Einsatz, Rejoin ohne neue Hold", async () => {

@@ -7,7 +7,10 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { PlayerLike } from "@openfront/engine-api/game/ReadViews";
-import { GameConfig } from "@openfront/engine-api/Schemas";
+import {
+  GameConfig,
+  MINECLASH_STAKE_SPAWN_TURNS,
+} from "@openfront/engine-api/Schemas";
 import { pow } from "../DetMath";
 import { DoomsdayClockSpeed } from "../game/DoomsdayClock";
 import { assertNever } from "../Util";
@@ -321,6 +324,9 @@ export class Config {
     return 0.8;
   }
   numSpawnPhaseTurns(): number {
+    if (this._gameConfig.mineclashStake !== undefined) {
+      return MINECLASH_STAKE_SPAWN_TURNS;
+    }
     if (this._gameConfig.gameType === GameType.Singleplayer) {
       return 100;
     }

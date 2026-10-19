@@ -39,6 +39,7 @@ async function make(
         ref = game.ref(cursor % 100, Math.floor(cursor / 100));
         cursor++;
       } while (!game.isLand(ref) || game.hasOwner(ref));
+      if (!p.hasSpawned()) p.setSpawnTile(ref);
       p.conquer(ref);
     }
   };
@@ -213,9 +214,40 @@ describe("mineclash win rules", () => {
       ["n1", N],
     ]);
     give(players[0], 10);
-    give(players[2], 5000); // h2 has no tiles => eliminated
+    give(players[2], 5000);
+    players[1].setSpawnTile(game.ref(0, 0)); // h2 spawned, no tiles => eliminated
     expect(checkMineclashWin(game)).toBe(true);
     expect(wins).toEqual([["player", "h1"]]);
+  });
+
+  it("stake: < 2 humans spawned => no human winner (refund)", async () => {
+    const { game, players, give, wins } = await make(
+      [
+        ["h1", H],
+        ["h2", H],
+        ["n1", N],
+      ],
+      { mineclashStake: { coins: 10 } },
+    );
+    give(players[0], 10); // h2 never spawned
+    give(players[2], 100);
+    expect(checkMineclashWin(game)).toBe(true);
+    expect(wins).toEqual([["none"]]);
+  });
+
+  it("stake: a non-spawner does not count, the 2 spawned play on", async () => {
+    const { game, players, give, wins } = await make(
+      [
+        ["h1", H],
+        ["h2", H],
+        ["h3", H],
+      ],
+      { mineclashStake: { coins: 10 } },
+    );
+    give(players[0], 10);
+    give(players[1], 10); // h3 never spawned
+    expect(checkMineclashWin(game)).toBe(false);
+    expect(wins).toEqual([]);
   });
 
   it("all humans eliminated: no human winner", async () => {
@@ -329,7 +361,8 @@ describe("mineclash win rules: teams", () => {
       cfg,
     );
     give(players[0], 100);
-    give(players[2], 9000); // h2 dead, Blue = nation only
+    give(players[2], 9000);
+    players[1].setSpawnTile(game.ref(0, 0)); // h2 dead, Blue = nation only
     // Red is the only human side left => Red wins (last human team).
     expect(checkMineclashWin(game)).toBe(true);
     expect(wins).toEqual([["team", "Red", "h1"]]);

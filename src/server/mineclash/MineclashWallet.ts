@@ -60,6 +60,8 @@ function openSettleIds(dir: string): string[] {
 
 export interface SettleJob {
   request: SettleRequest;
+  /** uuids whose hold is released before the settle (never spawned). */
+  release?: string[];
   createdAt: number;
 }
 
@@ -80,7 +82,7 @@ export function buildSettleRequest(
   result: MineclashResult,
   stakesByUuid: Record<string, number>,
   uuidOfClient: (clientId: string) => string | undefined,
-): { request: SettleRequest; problem?: string } {
+): { request: SettleRequest; release?: string[]; problem?: string } {
   const refund = (reason: RefundReason, problem?: string) => ({
     request: {
       event_id: matchId,
@@ -101,7 +103,12 @@ export function buildSettleRequest(
     if (!uuids.includes(u)) uuids.push(u);
   }
   if (uuids.length === 0) return refund("recount_mismatch", "no winners");
+  // Never spawned: stake back (hold released, so it is not in the pot).
+  const release = (result.notSpawned ?? [])
+    .map(uuidOfClient)
+    .filter((u): u is string => u !== undefined && u in stakesByUuid);
   return {
+    ...(release.length > 0 ? { release } : {}),
     request: {
       event_id: matchId,
       match_id: matchId,
@@ -313,7 +320,7 @@ export class MineclashWallet {
     stakesByUuid: Record<string, number>,
     uuidOfClient: (clientId: string) => string | undefined,
   ): Promise<void> {
-    const { request, problem } = buildSettleRequest(
+    const { request, release, problem } = buildSettleRequest(
       matchId,
       result,
       stakesByUuid,
@@ -323,10 +330,13 @@ export class MineclashWallet {
       log.error(`settle ${matchId}: ${problem} -> refund`);
       void alertNachrechnung(`${problem}, Einsaetze zurueck`);
     }
-    await this.persist({ request, createdAt: this.now() });
+    await this.persist({ request, release, createdAt: this.now() });
+    const inPot = Object.fromEntries(
+      Object.entries(stakesByUuid).filter(([u]) => !release?.includes(u)),
+    );
     // mineclash #39: Ergebnis fuer den Endscreen ("wird geprueft")
-    await writePending(matchId, request, stakesByUuid, this.resultsDir).catch(
-      (e) => log.warn(`result pending failed: ${(e as Error).message}`),
+    await writePending(matchId, request, inPot, this.resultsDir).catch((e) =>
+      log.warn(`result pending failed: ${(e as Error).message}`),
     );
     this.holds.delete(matchId);
     this.run(matchId);
@@ -394,6 +404,9 @@ export class MineclashWallet {
         return;
       }
       try {
+        // Idempotent (no-op without an active hold), so a retry is safe.
+        for (const uuid of job.release ?? [])
+          await this.o.api.release({ match_id: matchId, uuid });
         const r = await this.o.api.settle(job.request);
         log.info(`settled ${matchId}`, {
           kind: r.kind,

@@ -1212,6 +1212,7 @@
     "stake_guest": "Einsatz-Lobbys brauchen einen mineclash-Login. Gäste können nur Gratis-Runden spielen.",
     "stake_insufficient_funds": "Nicht genug Coins für den Einsatz dieser Lobby.",
     "stake_ip_limit": "Pro IP-Adresse dürfen höchstens 2 Konten einer Einsatz-Lobby beitreten.",
+    "stake_no_spawn": "Du hast nicht innerhalb von 1 Minute gespawnt und wurdest aus dem Match entfernt. Dein Einsatz wird zurückerstattet.",
     "stake_rules_not_accepted": "Akzeptiere zuerst die Regeln der Einsatz-Matches.",
     "stake_wallet_unavailable": "Einsätze sind gerade nicht verfügbar. Bitte versuche es später erneut."
   },

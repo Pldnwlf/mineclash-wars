@@ -109,6 +109,22 @@ describe("Auszahlung", () => {
     expect(hasOpenSettleFiles(dir)).toBe(false);
   });
 
+  test("nicht gespawnt: Einsatz zurueck, nicht im Topf", async () => {
+    const w = await ready();
+    const m = mid();
+    for (const u of [A, B, C]) await w.hold(m, u, 100);
+    const res: MineclashResult = {
+      kind: "winners",
+      clientIds: ["ca"],
+      notSpawned: ["cc"],
+    };
+    await w.settle(m, res, w.stakesOf(m), uuidOf);
+    await w.settled(m);
+    expect([A, B, C].map((u) => bal(u).balance)).toEqual([1090, 900, 1000]);
+    expect(bal(C).held).toBe(0);
+    expect(files()).toEqual([]);
+  });
+
   test("Gleichstand mit Rundungsrest: Rest wird mitverbrannt", async () => {
     const w = await ready();
     const m = mid();

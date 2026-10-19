@@ -16,6 +16,8 @@ import type { Game, Player } from "../game/Game";
 //   "no human winner" (["none"], stakes refunded), as does the last human dying.
 // - Last human (team) with land wins at once. Disconnect is NOT elimination:
 //   a disconnected human keeps land and stays in the game until wiped out.
+// - Only humans who spawned count. Stake match with < 2 spawned humans after
+//   the spawn phase ends with "no human winner" (the server refunds all).
 // - 80% of land; from minute 15 the bar drops 1 point per minute; at the end
 //   minute (25 => 70%) the human with the most land wins; ties share.
 // Integer math on whole game seconds (ticks / 10), deterministic.
@@ -31,7 +33,7 @@ export function checkMineclashWin(mg: Game): boolean {
   const aliveHumans = alive.filter((p) => p.type() === PlayerType.Human);
   const everHumans = mg
     .allPlayers()
-    .filter((p) => p.type() === PlayerType.Human);
+    .filter((p) => p.type() === PlayerType.Human && p.hasSpawned());
   const stats = () => mg.stats().stats();
 
   if (aliveHumans.length === 0) {
@@ -58,6 +60,10 @@ export function checkMineclashWin(mg: Game): boolean {
 
   // Last human side standing (only if >1 human side started).
   const startedSides = new Set(everHumans.map(sideOf));
+  if (cfg.mineclashStake !== undefined && startedSides.size < 2) {
+    mg.setNoHumanWinner(stats());
+    return true;
+  }
   const aliveSides = new Set(aliveHumans.map(sideOf));
   if (startedSides.size >= 2 && aliveSides.size === 1) {
     return win([...aliveSides]);

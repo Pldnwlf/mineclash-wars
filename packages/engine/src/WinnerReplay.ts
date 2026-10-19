@@ -23,6 +23,8 @@ export interface ReplayedWinner {
   // mineclash #24: first turn whose recorded state checksum differs from the
   // replay's (null = all recorded ones matched up to the result).
   firstHashMismatch?: number | null;
+  // mineclash: humans that spawned (stake: the others keep their stake).
+  spawnedClientIds?: string[];
 }
 
 /**
@@ -49,6 +51,11 @@ export async function replayWinner(
     win ??= gu.updates[GameUpdateType.Win][0] ?? null;
     tickHash = gu.updates[GameUpdateType.Hash][0] ?? null;
   });
+  const spawned = () =>
+    runner.game
+      .allPlayers()
+      .filter((p) => p.hasSpawned())
+      .flatMap((p) => p.clientID() ?? []);
   for (const turn of turns) {
     runner.addTurn(turn);
     if (!runner.executeNextTick()) {
@@ -75,6 +82,7 @@ export async function replayWinner(
         allPlayersStats: w.allPlayersStats,
         tick: runner.game.ticks(),
         firstHashMismatch,
+        spawnedClientIds: spawned(),
       };
     }
   }
@@ -83,5 +91,6 @@ export async function replayWinner(
     allPlayersStats: runner.game.stats().stats(),
     tick: null,
     firstHashMismatch,
+    spawnedClientIds: spawned(),
   };
 }

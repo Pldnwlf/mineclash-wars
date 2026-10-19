@@ -15,6 +15,7 @@ import {
   GameConfigPatch,
   GameID,
   Intent,
+  MINECLASH_STAKE_SPAWN_TURNS,
   StampedIntent,
   TeamCountConfig,
   Tribe,
@@ -152,6 +153,7 @@ const KICK_REASON_MATCH_CANCELLED = "kick_reason.match_cancelled";
 const KICK_REASON_SERVER_UPDATE = "kick_reason.server_update";
 // mineclash #23: a stake lobby that cannot start (< 2 humans); stakes are refunded.
 const KICK_REASON_STAKE_CANCELLED = "kick_reason.stake_cancelled";
+const KICK_REASON_NO_SPAWN = "kick_reason.stake_no_spawn";
 
 export interface GameServerOptions {
   id: string;
@@ -1696,6 +1698,9 @@ export class GameServer {
     };
     this.turns.push(pastTurn);
     this.intents = [];
+    if (this.stake && this.turns.length === MINECLASH_STAKE_SPAWN_TURNS + 1) {
+      this.kickNonSpawners();
+    }
     const counts = this.telemetry.takeTickCounts(pastTurn.turnNumber);
     this.telemetry.emit(
       "turn_committed",
@@ -2059,6 +2064,21 @@ export class GameServer {
     return this.creatorPersistentID === undefined
       ? undefined
       : hashPersistentID(this.creatorPersistentID);
+  }
+
+  // mineclash: spawn time is over. Who never sent a spawn is kicked; the
+  // settle releases their hold (replay's spawnedClientIds), stake stays theirs.
+  private kickNonSpawners(): void {
+    const spawned = new Set(
+      this.turns.flatMap((t) =>
+        t.intents.filter((i) => i.type === "spawn").map((i) => i.clientID),
+      ),
+    );
+    for (const p of this.wireGameStartInfo.players) {
+      if (!spawned.has(p.clientID)) {
+        this.kickClient(p.clientID, KICK_REASON_NO_SPAWN);
+      }
+    }
   }
 
   public kickClient(

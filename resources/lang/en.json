@@ -1314,6 +1314,7 @@
     "stake_guest": "Stake lobbies need a mineclash login. Guests can only play free rounds.",
     "stake_insufficient_funds": "Not enough coins for the stake of this lobby.",
     "stake_ip_limit": "At most 2 accounts per IP address can join a stake lobby.",
+    "stake_no_spawn": "You did not spawn within 1 minute and were removed from the match. Your stake is refunded.",
     "stake_rules_not_accepted": "Accept the stake match rules first.",
     "stake_wallet_unavailable": "Stakes are temporarily unavailable. Please try again later."
   },
